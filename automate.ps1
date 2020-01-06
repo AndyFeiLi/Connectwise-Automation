@@ -13,6 +13,7 @@ $startTicketID =  #Start Processing from this ticket ID
 ###########################################
 ###########################################
 
+
 Import-Module .\CWManage.psm1
 
 $global:totalCompleted = 0
@@ -68,6 +69,7 @@ function Complete-Ticket(){
 			
 			$output = [pscustomobject]@{
 					Result = "Completed"
+					Notes = ""
 					TicketID = $ticket.id 
 					Ticket = $ticket.summary
 				}
@@ -102,7 +104,7 @@ function Clean-TicketBoard
 	
 	#clear tickets "herwise, this computer sets up the secure session to any domain controller in the specified domain."
 	$target =$tickets |Where-Object {$_.summary -like "Critical Blacklist Events - Warnings and Errors for*"}
-	$target =$target |Where-Object {(Get-CWMTicketNote -ticketID $_.id).text -like "*The first Critical Blacklist Event found: herwise, this computer sets up the secure session to any domain controller in the specified domain.*"}
+	$target =$target |Where-Object {(Get-CWMTicketNote -ticketID $_.id).text -like "*The first Critical Blacklist Event found: herwise, this computer sets up the secure session to any domain controller in the specified domain.*" -or (Get-CWMTicketNote -ticketID $_.id).text -like "*The first Critical Blacklist Event found:  name resolution failure. Verify your Domain Name System (DNS) is configured and working correctly.*"}
 	Complete-Ticket -target $target
 } 
 
@@ -124,3 +126,4 @@ function Begin-Automation
 	
 	
 } 
+
