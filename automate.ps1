@@ -96,6 +96,9 @@ function Clean-TicketBoard
 	$target =$target |Where-Object {(Get-CWMTicketNote -ticketID $_.id).text -like "*\Device\Harddisk*\DR*"}
 	Complete-Ticket -target $target
 	
+	#clear tickets "Weekly digest: Office 365 changes"
+	$target =$tickets |Where-Object {$_.summary -like "Weekly digest: Office 365 changes"}
+	Complete-Ticket -target $target
 	
 } 
 
