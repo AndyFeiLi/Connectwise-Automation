@@ -100,6 +100,10 @@ function Clean-TicketBoard
 	$target =$tickets |Where-Object {$_.summary -like "Weekly digest: Office 365 changes"}
 	Complete-Ticket -target $target
 	
+	#clear tickets "herwise, this computer sets up the secure session to any domain controller in the specified domain."
+	$target =$tickets |Where-Object {$_.summary -like "Critical Blacklist Events - Warnings and Errors for*"}
+	$target =$target |Where-Object {(Get-CWMTicketNote -ticketID $_.id).text -like "*The first Critical Blacklist Event found: herwise, this computer sets up the secure session to any domain controller in the specified domain.*"}
+	Complete-Ticket -target $target
 } 
 
 
