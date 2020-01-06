@@ -8,7 +8,7 @@ $mypubkey = ""
 $myprivatekey = ""
 $myclientId = ""
 
-$startTicketID = 100 #Start Processing from this ticket ID 
+$startTicketID =  #Start Processing from this ticket ID 
 ###########################################
 ###########################################
 ###########################################
@@ -48,6 +48,8 @@ function Start-CWMConnection
 
 function Complete-Ticket(){
 
+	#mark tickets as complete only if current status = "NEW"
+
 	[CmdletBinding()]
     param(
         [PSCustomObject]$target
@@ -76,7 +78,7 @@ function Complete-Ticket(){
 	}
 }
 
-function Clean-UselessTickets
+function Clean-TicketBoard
 {
 	Write-Output "Loading Recent Tickets"
 	$tickets=Get-CWMTicket -condition "id>$startTicketID" -pageSize 1000
@@ -88,8 +90,12 @@ function Clean-UselessTickets
 	Complete-Ticket -target $target
 	
 	#clear tickets "The driver detected a controller error on \Device\Harddisk1\DR#"
+	#select tickets with relevant summary
 	$target =$tickets |Where-Object {$_.summary -like "*Drive Errors and Raid Failures*"}
+	#make sure notes contain the text DR#
+	$target =$target |Where-Object {(Get-CWMTicketNote -ticketID $_.id).text -like "*\Device\Harddisk*\DR*"}
 	Complete-Ticket -target $target
+	
 	
 } 
 
@@ -101,7 +107,7 @@ function Begin-Automation
 	Start-CWMConnection
 	
 	#clean up monitoring board of useless tickets
-	Clean-UselessTickets
+	Clean-TicketBoard
 	
 	#end connectwise manage session
 	#Disconnect-CWM
