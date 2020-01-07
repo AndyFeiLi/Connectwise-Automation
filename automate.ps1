@@ -53,7 +53,8 @@ function Complete-Ticket(){
 
 	[CmdletBinding()]
     param(
-        [PSCustomObject]$target
+        [PSCustomObject]$target,
+		[string]$notes
     )
 	
 	#create completed status object
@@ -70,7 +71,7 @@ function Complete-Ticket(){
 			$output = [pscustomobject]@{
 					TicketID = $ticket.id
 					Result = "Completed"
-					Notes = "" 
+					Notes = $notes
 					Ticket = $ticket.summary
 				}
 			
@@ -89,23 +90,28 @@ function Clean-TicketBoard
 	
 	#clear tickets "Ticket #*/has been submitted to Cloud Connect Helpdesk"
 	$target =$tickets |Where-Object {$_.summary -like "Ticket #*/has been submitted to Cloud Connect Helpdesk"}
-	Complete-Ticket -target $target
+	Complete-Ticket -target $target -notes "Ticket# has been submitted..."
 	
 	#clear tickets "The driver detected a controller error on \Device\Harddisk1\DR#"
 	#select tickets with relevant summary
 	$target =$tickets |Where-Object {$_.summary -like "*Drive Errors and Raid Failures*"}
 	#make sure notes contain the text DR#
 	$target =$target |Where-Object {(Get-CWMTicketNote -ticketID $_.id).text -like "*\Device\Harddisk*\DR*"}
-	Complete-Ticket -target $target
+	Complete-Ticket -target $target -notes "DR# errors"
 	
 	#clear tickets "Weekly digest: Office 365 changes"
 	$target =$tickets |Where-Object {$_.summary -like "Weekly digest: Office 365 changes"}
-	Complete-Ticket -target $target
+	Complete-Ticket -target $target -notes "Not a ticket"
 	
 	#clear tickets "herwise, this computer sets up the secure session to any domain controller in the specified domain."
 	$target =$tickets |Where-Object {$_.summary -like "*Critical Blacklist Events - Warnings and Errors for*"}
-	$target =$target |Where-Object {(Get-CWMTicketNote -ticketID $_.id).text -like "*The first Critical Blacklist Event found: herwise, this computer sets up the secure session to any domain controller in the specified domain.*" -or (Get-CWMTicketNote -ticketID $_.id).text -like "*The first Critical Blacklist Event found:  name resolution failure. Verify your Domain Name System (DNS) is configured and working correctly.*"}
-	Complete-Ticket -target $target
+	$target =$target |Where-Object {(Get-CWMTicketNote -ticketID $_.id).text -like "*The first Critical Blacklist Event found: herwise, this computer sets up the secure session to any domain controller in the specified domain.*"}
+	Complete-Ticket -target $target -notes "herwise, this computer sets up the secure session to any domain controller"
+	
+	#clear tickets "name resolution failire. veri..
+	$target =$tickets |Where-Object {$_.summary -like "*Critical Blacklist Events - Warnings and Errors for*"}
+	$target =$target |Where-Object {(Get-CWMTicketNote -ticketID $_.id).text -like "*The first Critical Blacklist Event found:  name resolution failure. Verify your Domain Name System (DNS) is configured and working correctly.*"}
+	Complete-Ticket -target $target -notes "name resolution failure. Verify your Domain Name System (DNS) is configured and working correctly"
 } 
 
 
