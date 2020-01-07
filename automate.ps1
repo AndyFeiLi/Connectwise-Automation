@@ -71,7 +71,7 @@ $code = {
 						Ticket = $ticket.summary
 					}
 				
-				Add-Content C:\Users\Andy\output.txt $output
+				Add-Content output.txt $output
 				
 			}
 		}
@@ -119,14 +119,12 @@ function Begin-Automation
 {
 	
 	$time = Get-Date
-	Add-Content C:\Users\Andy\output.txt $time
+	Add-Content output.txt $time
 
 	#get current tickets
 	Invoke-Expression $code.ToString()
 	Start-CWMConnection
 	$tickets=Get-CWMTicket -condition "id>$startTicketID" -pageSize 1000
-	
-	write-output $tickets.count
 	
 	Apply-Filter -summary "Ticket #*/has been submitted to Cloud Connect Helpdesk" -text ""	-tickets $tickets
 	Apply-Filter -summary "Weekly digest: Office 365 changes" -text "" -tickets $tickets
@@ -136,6 +134,7 @@ function Begin-Automation
 	Apply-Filter -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found: herwise, this computer sets up the secure session to any domain controller in the specified domain.*" -tickets $tickets
 	Apply-Filter -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found:  name resolution failure. Verify your Domain Name System (DNS) is configured and working correctly.*" -tickets $tickets
 	Apply-Filter -summary "Security Audit Failure:*" -text "*Microsoft-Windows-Security-Auditing-An account failed to log on*" -tickets $tickets
+	Apply-Filter -summary "Security Audit Failure:*" -text "*Microsoft-Windows-Security-Auditing-Cryptographic operation*" -tickets $tickets
 	
 	Write-Output "To check the state of Jobs use Get-Job"
 	
