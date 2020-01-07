@@ -43,7 +43,7 @@ $code = {
 		Connect-CWM @Connection
 		Write-Output "Authenticated Successfully"
 	} 
-
+	
 	function Complete-Ticket(){
 
 		#mark tickets as complete only if current status = "NEW"
@@ -83,12 +83,11 @@ $code = {
 		[CmdletBinding()]
 		param(
 			[string]$summary,
-			[string]$text
+			[string]$text,
+			[PSCustomObject]$tickets
 		)
-	
-		$tickets=Get-CWMTicket -condition "id>$startTicketID" -pageSize 1000
 		
-		$target =$tickets |Where-Object {$_.summary -like $summary}
+		$target = $tickets |Where-Object {$_.summary -like $summary}
 		if($text -ne "")
 		{
 			$target =$target |Where-Object {(Get-CWMTicketNote -ticketID $_.id).text -like $text}
@@ -103,29 +102,41 @@ function Apply-Filter{
 	[CmdletBinding()]
 		param(
 			[string]$summary,
-			[string]$text
+			[string]$text,
+			[PSCustomObject]$tickets
 		)
 
 	$scriptBlock = {
-		. Invoke-Expression $args[0]
+		Invoke-Expression $args[0]
 		Start-CWMConnection
-		Clean-TicketBoard -summary $args[1] -text $args[2]
+		Clean-TicketBoard -summary $args[1] -text $args[2] -tickets $args[3]
 		Disconnect-CWM
 	}
-	$job = Start-Job -ScriptBlock $scriptBlock -ArgumentList ($code,$summary,$text)
-
-
+	Start-Job -ScriptBlock $scriptBlock -ArgumentList ($code,$summary,$text,$tickets)
 }
 
 function Begin-Automation
 {
+	
 	$time = Get-Date
 	Add-Content C:\Users\Andy\output.txt $time
 
-	Apply-Filter -summary "Ticket #*/has been submitted to Cloud Connect Helpdesk" -text ""	
-	Apply-Filter -summary "Weekly digest: Office 365 changes" -text ""	
+	#get current tickets
+	Invoke-Expression $code.ToString()
+	Start-CWMConnection
+	$tickets=Get-CWMTicket -condition "id>$startTicketID" -pageSize 1000
 	
-	Apply-Filter -summary "*Drive Errors and Raid Failures*" -text "*\Device\Harddisk*\DR*"
-	Apply-Filter -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found: herwise, this computer sets up the secure session to any domain controller in the specified domain.*"
-	Apply-Filter -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found:  name resolution failure. Verify your Domain Name System (DNS) is configured and working correctly.*"
+	write-output $tickets.count
+	
+	Apply-Filter -summary "Ticket #*/has been submitted to Cloud Connect Helpdesk" -text ""	-tickets $tickets
+	Apply-Filter -summary "Weekly digest: Office 365 changes" -text "" -tickets $tickets
+	Apply-Filter -summary "*Service * is Stopped for *" -text "" -tickets $tickets
+	
+	Apply-Filter -summary "*Drive Errors and Raid Failures*" -text "*\Device\Harddisk*\DR*" -tickets $tickets
+	Apply-Filter -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found: herwise, this computer sets up the secure session to any domain controller in the specified domain.*" -tickets $tickets
+	Apply-Filter -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found:  name resolution failure. Verify your Domain Name System (DNS) is configured and working correctly.*" -tickets $tickets
+	Apply-Filter -summary "Security Audit Failure:*" -text "*Microsoft-Windows-Security-Auditing-An account failed to log on*" -tickets $tickets
+	
+	Write-Output "To check the state of Jobs use Get-Job"
+	
 } 
