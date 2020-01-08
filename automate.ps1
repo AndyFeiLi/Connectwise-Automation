@@ -9,7 +9,8 @@ $code = {
 	$myprivatekey = ""
 	$myclientId = ""
 
-	$startTicketID =  #Start Processing from this ticket ID 
+	#Start Processing from this ticket ID 
+	$startTicketID = 56952 
 	###########################################
 	###########################################
 	###########################################
@@ -133,6 +134,7 @@ function Begin-Automation
 	Apply-Filter -summary "*Drive Errors and Raid Failures*" -text "*\Device\Harddisk*\DR*" -tickets $tickets
 	Apply-Filter -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found: herwise, this computer sets up the secure session to any domain controller in the specified domain.*" -tickets $tickets
 	Apply-Filter -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found:  name resolution failure. Verify your Domain Name System (DNS) is configured and working correctly.*" -tickets $tickets
+	Apply-Filter -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found: System log - EventLog: The previous system shutdown at * on * was unexpected*" -tickets $tickets
 	Apply-Filter -summary "Security Audit Failure:*" -text "*Microsoft-Windows-Security-Auditing-An account failed to log on*" -tickets $tickets
 	Apply-Filter -summary "Security Audit Failure:*" -text "*Microsoft-Windows-Security-Auditing-Cryptographic operation*" -tickets $tickets
 	
