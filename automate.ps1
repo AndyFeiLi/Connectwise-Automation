@@ -71,7 +71,7 @@ $code = {
 						Ticket = $ticket.summary
 					}
 				
-				Add-Content output.txt $output
+				Add-Content C:\Users\Andy\output.txt $output
 				
 			}
 		}
@@ -119,7 +119,7 @@ function Begin-Automation
 {
 	
 	$time = Get-Date
-	Add-Content output.txt $time
+	Add-Content C:\Users\Andy\output.txt $time
 
 	#get current tickets
 	Invoke-Expression $code.ToString()
