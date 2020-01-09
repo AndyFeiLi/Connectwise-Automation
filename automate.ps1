@@ -1,21 +1,9 @@
 $code = {
-	###########################################
-	##################Edit#####################
-	###########################################
-
-	$myServer = "au.myconnectwise.net"
-	$myCompany = "CloudConnect"
-	$mypubkey = ""
-	$myprivatekey = ""
-	$myclientId = ""
-
-	#Start Processing from this ticket ID 
-	$startTicketID =  
-	###########################################
-	###########################################
-	###########################################
 
 	Import-Module .\CWManage.psm1
+	Import-Module .\password.ps1
+	
+	$startTicketID = 56952
 
 	function Start-CWMConnection
 	{
@@ -127,7 +115,7 @@ function Begin-Automation
 	Start-CWMConnection
 	$tickets=Get-CWMTicket -condition "id>$startTicketID" -pageSize 1000
 	
-	write-output $tickets.count
+	#write-output $tickets.count
 	
 	Apply-Filter -summary "Ticket #*/has been submitted to Cloud Connect Helpdesk" -text ""	-tickets $tickets
 	Apply-Filter -summary "Weekly digest: Office 365 changes" -text "" -tickets $tickets
