@@ -33,6 +33,31 @@ $code = {
 		Write-Output "Authenticated Successfully"
 	} 
 	
+	function Add-CWMTimeNote(){
+	
+		[CmdletBinding()]
+		param(
+			[string]$ticketID,
+			[string]$notes
+		)
+	
+		$getdate = Get-Date
+		$getdate = $getdate.AddHours(-8)
+		$getdate = get-date $getdate -Format "o"
+		$getdate = $getdate.substring(0, 17)
+		$getdate = $getdate+"00Z"
+
+		$getLaterDate = Get-Date
+		$getlaterdate = $getlaterdate.AddHours(-8)
+		$getlaterdate = $getlaterdate.AddMinutes(1)
+		$getlaterdate = get-date $getlaterdate -Format "o"
+		$getlaterdate = $getlaterdate.substring(0, 17)
+		$getlaterdate = $getlaterdate+"00Z"
+
+		New-CWMTimeEntry -chargeToId $ticketID -notes $notes -chargeToType "ServiceTicket" -timeStart $getdate -timeEnd $getLaterDate
+			
+	}
+	
 	function Complete-Ticket(){
 
 		#mark tickets as complete only if current status = "NEW"
@@ -49,9 +74,11 @@ $code = {
 		#for relevant ticket update status to completed
 		foreach($ticket in $target){
 		
+			
+		
 			#if ticket is New
 			if(!$ticket.status.name.CompareTo("New") -or !$ticket.status.name.CompareTo("New - Assigned")){
-			
+				Add-CWMTimeNote -ticketID $ticket.id -notes $notes
 				$result = Update-CWMTicket -TicketID $ticket.id -Operation "replace" -Path "status" -Value $completed
 				
 				$output = [pscustomobject]@{
@@ -59,9 +86,7 @@ $code = {
 						Result = "Completed"
 						Ticket = $ticket.summary
 					}
-				
 				Add-Content C:\Users\Andy\output.txt $output
-				
 			}
 		}
 	}
@@ -73,6 +98,7 @@ $code = {
 		param(
 			[string]$summary,
 			[string]$text,
+			[string]$notes,
 			[PSCustomObject]$tickets
 		)
 		
@@ -82,7 +108,7 @@ $code = {
 			$target =$target |Where-Object {(Get-CWMTicketNote -ticketID $_.id).text -like $text}
 		}
 		
-		Complete-Ticket -target $target 
+		Complete-Ticket -target $target -notes $notes
 	} 
 }
 
@@ -92,16 +118,17 @@ function Apply-Filter{
 		param(
 			[string]$summary,
 			[string]$text,
+			[string]$notes,
 			[PSCustomObject]$tickets
 		)
 
 	$scriptBlock = {
 		Invoke-Expression $args[0]
 		Start-CWMConnection
-		Clean-TicketBoard -summary $args[1] -text $args[2] -tickets $args[3]
+		Clean-TicketBoard -summary $args[1] -text $args[2] -tickets $args[3] -notes $args[4]
 		Disconnect-CWM
 	}
-	Start-Job -Name $summary -ScriptBlock $scriptBlock -ArgumentList ($code,$summary,$text,$tickets)
+	Start-Job -Name $summary -ScriptBlock $scriptBlock -ArgumentList ($code,$summary,$text,$tickets,$notes)
 }
 
 function Begin-Automation
@@ -117,15 +144,16 @@ function Begin-Automation
 	
 	#write-output $tickets.count
 	
-	Apply-Filter -summary "Ticket #*/has been submitted to Cloud Connect Helpdesk" -text ""	-tickets $tickets
-	Apply-Filter -summary "Weekly digest: Office 365 changes" -text "" -tickets $tickets
-	Apply-Filter -summary "*Service * is Stopped for *" -text "" -tickets $tickets
+	Apply-Filter -tickets $tickets -notes "unnecessary ticket" -summary "Ticket #*/has been submitted to Cloud Connect Helpdesk" -text ""	
+	Apply-Filter -tickets $tickets -notes "email - not a ticket" -summary "Weekly digest: Office 365 changes" -text "" 
+	Apply-Filter -tickets $tickets -notes "service stopped - no action required" -summary "*Service * is Stopped for *" -text "" 
 	
-	Apply-Filter -summary "*Drive Errors and Raid Failures*" -text "*\Device\Harddisk*\DR*" -tickets $tickets
-	Apply-Filter -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found: herwise, this computer sets up the secure session to any domain controller in the specified domain.*" -tickets $tickets
-	Apply-Filter -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found:  name resolution failure. Verify your Domain Name System (DNS) is configured and working correctly.*" -tickets $tickets
-	Apply-Filter -summary "Security Audit Failure:*" -text "*Microsoft-Windows-Security-Auditing-An account failed to log on*" -tickets $tickets
+	Apply-Filter -tickets $tickets -notes "external drive errors - no action required" -summary "*Drive Errors and Raid Failures*" -text "*\Device\Harddisk*\DR*" 
+	Apply-Filter -tickets $tickets -notes "temporary disconnection from DNS server - no action required" -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found: herwise, this computer sets up the secure session to any domain controller in the specified domain.*" 
+	Apply-Filter -tickets $tickets -notes "temporary disconnection from DNS server - no action required" -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found:  name resolution failure. Verify your Domain Name System (DNS) is configured and working correctly.*" 
+	Apply-Filter -tickets $tickets -notes "single account login fail - no action required" -summary "Security Audit Failure:*" -text "*Microsoft-Windows-Security-Auditing-An account failed to log on*" 
 	
-	Write-Output "To check the state of Jobs use Get-Job"
+	Write-Output ""
+	Write-Output "To check the state of jobs use Get-Job"
 	
 } 
