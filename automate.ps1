@@ -109,9 +109,11 @@ function Apply-Filter{
 
 	$scriptBlock = {
 		Invoke-Expression $args[0]
+		Start-CWMConnection
 		Clean-TicketBoard -summary $args[1] -text $args[2] -tickets $args[3]
+		Disconnect-CWM
 	}
-	Start-Job -ScriptBlock $scriptBlock -Name $summary -ArgumentList ($code,$summary,$text,$tickets)
+	Start-Job -Name $summary -ScriptBlock $scriptBlock -ArgumentList ($code,$summary,$text,$tickets)
 }
 
 function Begin-Automation
@@ -123,8 +125,9 @@ function Begin-Automation
 	#get current tickets
 	Invoke-Expression $code.ToString()
 	Start-CWMConnection
-	
 	$tickets=Get-CWMTicket -condition "id>$startTicketID" -pageSize 1000
+	
+	write-output $tickets.count
 	
 	Apply-Filter -summary "Ticket #*/has been submitted to Cloud Connect Helpdesk" -text ""	-tickets $tickets
 	Apply-Filter -summary "Weekly digest: Office 365 changes" -text "" -tickets $tickets
@@ -133,11 +136,7 @@ function Begin-Automation
 	Apply-Filter -summary "*Drive Errors and Raid Failures*" -text "*\Device\Harddisk*\DR*" -tickets $tickets
 	Apply-Filter -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found: herwise, this computer sets up the secure session to any domain controller in the specified domain.*" -tickets $tickets
 	Apply-Filter -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found:  name resolution failure. Verify your Domain Name System (DNS) is configured and working correctly.*" -tickets $tickets
-	Apply-Filter -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found: System log - EventLog: The previous system shutdown at * on * was unexpected*" -tickets $tickets
 	Apply-Filter -summary "Security Audit Failure:*" -text "*Microsoft-Windows-Security-Auditing-An account failed to log on*" -tickets $tickets
-	Apply-Filter -summary "Security Audit Failure:*" -text "*Microsoft-Windows-Security-Auditing-Cryptographic operation*" -tickets $tickets
-		
-	Disconnect-CWM
 	
 	Write-Output "To check the state of Jobs use Get-Job"
 	
