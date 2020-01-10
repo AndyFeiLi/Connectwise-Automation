@@ -3,7 +3,7 @@ $code = {
 	Import-Module .\CWManage.psm1
 	Import-Module .\password.ps1
 	
-	$startTicketID = 56952
+	$startTicketID = 57000
 
 	function Start-CWMConnection
 	{
@@ -70,12 +70,17 @@ $code = {
 		
 		#create completed status object
 		$completed = @{id=""; name="Completed"; _info=""}
+		
+		$autoMessage = "
+			
+		This ticket has been automatically closed by Cloudconnect's ongoing monitoring program.
+		If this ticket has been closed by mistake, please contact Andy@Cloudconnect.tech"
+			
+		$notes = $notes + $autoMessage
 
 		#for relevant ticket update status to completed
 		foreach($ticket in $target){
-		
 			
-		
 			#if ticket is New
 			if(!$ticket.status.name.CompareTo("New") -or !$ticket.status.name.CompareTo("New - Assigned")){
 				Add-CWMTimeNote -ticketID $ticket.id -notes $notes
@@ -144,14 +149,18 @@ function Begin-Automation
 	
 	#write-output $tickets.count
 	
-	Apply-Filter -tickets $tickets -notes "unnecessary ticket" -summary "Ticket #*/has been submitted to Cloud Connect Helpdesk" -text ""	
-	Apply-Filter -tickets $tickets -notes "email - not a ticket" -summary "Weekly digest: Office 365 changes" -text "" 
-	Apply-Filter -tickets $tickets -notes "service stopped - no action required" -summary "*Service * is Stopped for *" -text "" 
+	Apply-Filter -tickets $tickets -notes "Unnecessary ticket." -summary "Ticket #*/has been submitted to Cloud Connect Helpdesk" -text ""	
+	Apply-Filter -tickets $tickets -notes "Email - not a ticket." -summary "Weekly digest: Office 365 changes" -text "" 
+	Apply-Filter -tickets $tickets -notes "Service has stopped - no action required." -summary "*Service * is Stopped for *" -text "" 
 	
-	Apply-Filter -tickets $tickets -notes "external drive errors - no action required" -summary "*Drive Errors and Raid Failures*" -text "*\Device\Harddisk*\DR*" 
-	Apply-Filter -tickets $tickets -notes "temporary disconnection from DNS server - no action required" -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found: herwise, this computer sets up the secure session to any domain controller in the specified domain.*" 
-	Apply-Filter -tickets $tickets -notes "temporary disconnection from DNS server - no action required" -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found:  name resolution failure. Verify your Domain Name System (DNS) is configured and working correctly.*" 
-	Apply-Filter -tickets $tickets -notes "single account login fail - no action required" -summary "Security Audit Failure:*" -text "*Microsoft-Windows-Security-Auditing-An account failed to log on*" 
+	Apply-Filter -tickets $tickets -notes "External drive errors - no action required." -summary "*Drive Errors and Raid Failures*" -text "*\Device\Harddisk*\DR*" 
+	Apply-Filter -tickets $tickets -notes "Single Security Audit Failure - no action required." -summary "Security Audit Failure:*" -text "*Microsoft-Windows-Security-Auditing-An account failed to log on*" 
+	
+	Apply-Filter -tickets $tickets -notes "Temporary disconnection from DNS server - no action required." -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found: herwise, this computer sets up the secure session to any domain controller in the specified domain.*" 
+	Apply-Filter -tickets $tickets -notes "Temporary disconnection from DNS server - no action required." -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found:  name resolution failure. Verify your Domain Name System (DNS) is configured and working correctly.*" 
+	Apply-Filter -tickets $tickets -notes "Temporary disconnection from DNS server - no action required." -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found:  account created on another domain controller has not replicated to the current domain controller).*" 
+	Apply-Filter -tickets $tickets -notes "Temporary disconnection from DNS server - no action required." -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found:  processed. If you do not see a success message for several hours, then contact your administrator.*" 
+	
 	
 	Write-Output ""
 	Write-Output "To check the state of jobs use Get-Job"
