@@ -73,7 +73,7 @@ $code = {
 		
 		$autoMessage = "
 			
-		This ticket has been automatically closed by Cloudconnect's ongoing monitoring program.
+		This ticket has been automatically closed by Cloudconnect's automation script.
 		If this ticket has been closed by mistake, please contact Andy@Cloudconnect.tech"
 			
 		$notes = $notes + $autoMessage
@@ -150,16 +150,21 @@ function Begin-Automation
 	#write-output $tickets.count
 	
 	Apply-Filter -tickets $tickets -notes "Unnecessary ticket." -summary "Ticket #*/has been submitted to Cloud Connect Helpdesk" -text ""	
+	Apply-Filter -tickets $tickets -notes "Notification from LabTech - not a ticket." -summary "Message Center Major Change Update Notification" -text ""	
 	Apply-Filter -tickets $tickets -notes "Email - not a ticket." -summary "Weekly digest: Office 365 changes" -text "" 
-	Apply-Filter -tickets $tickets -notes "Service has stopped - no action required." -summary "*Service * is Stopped for *" -text "" 
 	
+	Apply-Filter -tickets $tickets -notes "Service has stopped - no action required." -summary "*Service * is Stopped for *" -text "*The Service Monitor detected that the service*is Stopped.*" 
 	Apply-Filter -tickets $tickets -notes "External drive errors - no action required." -summary "*Drive Errors and Raid Failures*" -text "*\Device\Harddisk*\DR*" 
 	Apply-Filter -tickets $tickets -notes "Single Security Audit Failure - no action required." -summary "Security Audit Failure:*" -text "*Microsoft-Windows-Security-Auditing-An account failed to log on*" 
+	Apply-Filter -tickets $tickets -notes "Cryptographic Operation Failure - no action required." -summary "Security Audit Failure:*" -text "*Microsoft-Windows-Security-Auditing-Cryptographic operation.*" 
 	
 	Apply-Filter -tickets $tickets -notes "Temporary disconnection from DNS server - no action required." -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found: herwise, this computer sets up the secure session to any domain controller in the specified domain.*" 
 	Apply-Filter -tickets $tickets -notes "Temporary disconnection from DNS server - no action required." -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found:  name resolution failure. Verify your Domain Name System (DNS) is configured and working correctly.*" 
 	Apply-Filter -tickets $tickets -notes "Temporary disconnection from DNS server - no action required." -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found:  account created on another domain controller has not replicated to the current domain controller).*" 
 	Apply-Filter -tickets $tickets -notes "Temporary disconnection from DNS server - no action required." -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found:  processed. If you do not see a success message for several hours, then contact your administrator.*" 
+	Apply-Filter -tickets $tickets -notes "Temporary disconnection from DNS server - no action required." -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found:  of new Group Policy objects and settings. An event will be logged when Group Policy is successful.*" 
+	Apply-Filter -tickets $tickets -notes "Temporary disconnection from DNS server - no action required." -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found: a name resolution failure. Verify your Domain Name System (DNS) is configured and working correctly.*" 
+	
 	
 	
 	Write-Output ""
