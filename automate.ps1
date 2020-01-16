@@ -62,6 +62,8 @@ $code = {
 	}
 	
 	function Schedule-Automatescript{
+	
+		#schedule script to run once at time of call for the target computerID
 		
 		[CmdletBinding()]
 		param(
@@ -128,15 +130,15 @@ $code = {
 			[string]$token
 		)
 		
+		$closeTicket = $true
+		
 		#create completed status object
 		$completed = @{id=""; name="Completed"; _info=""}
 		
 		$autoMessage = "
 			
 		This ticket has been processed automatically by Cloudconnect's automation script.
-		If this ticket has been closed by mistake, please contact Andy@Cloudconnect.tech"
-			
-		$finalNote = $notes + $autoMessage
+		If this ticket has been processed incorrectly, please contact andy@cloudconnect.tech"
 
 		#for relevant ticket update status to completed
 		foreach($ticket in $target){
@@ -144,23 +146,52 @@ $code = {
 			#if ticket is New
 			if(!$ticket.status.name.CompareTo("New") -or !$ticket.status.name.CompareTo("New - Assigned")){
 			
+				#schedule script reboot 
 				if($notes -eq "Schedulled Reboot after 14hrs")
 				{
 					$computerID = $ticket.summary.split(" ")[9]
 					$scriptID = "482"
 					Schedule-Automatescript -computerID $computerID -scriptId $scriptID -token $token
 				}
+				
+				#schedule script 439 dism-sfc combo
+				if($notes -eq "Schedulled Dism-SFC combo")
+				{
+					$computerID = $ticket.summary.split(" ")[5]
+					$scriptID = "439"
+					
+					###BUGS here - commenting them out for now###
+					##if online schedule script, else put note saying script did not run
+					#$uri = "https://cloudconnect.hostedrmm.com/cwa/api/v1/Computers/"+$computerID
+					#$Header = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+					#$Header.Add("Authorization", "Bearer "+$token)
+					#$targetComputer = Invoke-RestMethod -Uri $uri -Method GET -ContentType "application/json" -Headers $Header 
+					
+					#if(!$targetComputer.status.CompareTo("Online"))
+					#{
+						Schedule-Automatescript -computerID $computerID -scriptId $scriptID -token $token
+					#}
+					#else{
+					#	$notes = "Attempted to schedule Dism-SFC combo, however workstation is currently Offline."
+					#	$closeTicket = $false
+					#}
+				}
 			
+				
+				$finalNote = $notes + $autoMessage
 				#mark ticket as completed
 				Add-CWMTimeNote -ticketID $ticket.id -notes $finalNote
-				$result = Update-CWMTicket -TicketID $ticket.id -Operation "replace" -Path "status" -Value $completed
-				
+				if($closeTicket)
+				{
+					$result = Update-CWMTicket -TicketID $ticket.id -Operation "replace" -Path "status" -Value $completed
+				}	
 				$output = [pscustomobject]@{
-						TicketID = $ticket.id
-						Result = "Completed"
-						Ticket = $ticket.summary
-					}
+					TicketID = $ticket.id
+					Result = "Completed"
+					Ticket = $ticket.summary
+				}
 				Add-Content C:\Users\Andy\output.txt $output
+				
 			}
 		}
 	}
@@ -236,8 +267,10 @@ function Begin-Automation
 	Apply-Filter -token $token -tickets $tickets -notes "Temporary disconnection from DNS server - no action required." -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found: a name resolution failure. Verify your Domain Name System (DNS) is configured and working correctly.*" 
 	
 	Apply-Filter -token $token -tickets $tickets -notes "Process Monitor - no action required." -summary "Bad Process for * at *" -text "*The Bad Process Monitor detected a Process that is marked bad: * This process should be terminated.*" 
+	Apply-Filter -token $token -tickets $tickets -notes "System shutdown - no action required." -summary "Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found: System log - EventLog:  The previous system shutdown at * on * was unexpected.*" 
 	
-	Apply-Filter -token $token -tickets $tickets -notes "Schedulled Reboot after 14hrs" -summary "UPTIME - Over 1 Month Without Reboot:49*" -text "*UPTIME - Over 1 Month Without Reboot* Detected on*at*" 
+	Apply-Filter -token $token -tickets $tickets -notes "Schedulled Reboot after 14hrs" -summary "*UPTIME - Over 1 Month Without Reboot:49*" -text "*UPTIME - Over 1 Month Without Reboot* Detected on*at*" 
+	Apply-Filter -token $token -tickets $tickets -notes "Schedulled Dism-SFC combo" -summary "Security Audit Failure:*" -text "*Microsoft-Windows-Security-Auditing-Code Integrity determined that the * hash* of *file * not valid.*" 
 	
 	Write-Output ""
 	Write-Output "To check the state of jobs use Get-Job"
