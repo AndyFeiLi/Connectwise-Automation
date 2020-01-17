@@ -6,7 +6,7 @@ $code = {
 	Import-Module .\CWManage.psm1
 	Import-Module .\password.ps1
 	
-	$startTicketID = 57500
+	$startTicketID = 57400
 
 	function Start-CWMConnection
 	{
@@ -98,7 +98,7 @@ $code = {
 		$PostBody.Add("NextSchedule", $getdate)
 		$PostBody.Add("OfflineOnly", $false)
 		$PostBody.Add("Parameters", "")
-		$PostBody.Add("Priority", 6)
+		$PostBody.Add("Priority", 15)
 		$PostBody.Add("RepeatAmount", 0)
 		$PostBody.Add("RepeatStopAfter", 0)
 		$PostBody.Add("RepeatType", 0)
@@ -154,7 +154,15 @@ $code = {
 					Schedule-Automatescript -computerID $computerID -scriptId $scriptID -token $token
 				}
 				
+				#reboot script
+				if($notes -eq "Schedulled Reboot after 14hrs to install updates")
+				{
+					$computerID = $ticket.summary.split(" ")[8]
+					$scriptID = "482"
+					Schedule-Automatescript -computerID $computerID -scriptId $scriptID -token $token
+				}
 				
+				#retire script
 				if($notes -eq "Workstation Retired")
 				{
 					$computerID = $ticket.summary.split(" ")[12]
@@ -281,6 +289,8 @@ function Begin-Automation
 	Apply-Filter -token $token -tickets $tickets -notes "Schedulled Reboot after 14hrs" -summary "*UPTIME - Over 1 Month Without Reboot:49*" -text "*UPTIME - Over 1 Month Without Reboot* Detected on*at*" 
 	Apply-Filter -token $token -tickets $tickets -notes "Schedulled Dism-SFC combo" -summary "Security Audit Failure:*" -text "*Microsoft-Windows-Security-Auditing-Code Integrity determined that the * hash* of *file * not valid.*" 
 	Apply-Filter -token $token -tickets $tickets -notes "Workstation Retired" -summary "LT - Agents No Checkin for More Than 30 Days:* - *" -text "*Agent on * has not reported in since * and should be reinstalled or fixed.*" 
+	
+	Apply-Filter -token $token -tickets $tickets -notes "Schedulled Reboot after 14hrs to install updates" -summary "UPDATES -  Out of Date:2*" -text "*UPDATES -  Out of Date FAILED on * at *  - Updates have not been installed on this machine for over 30 days as of*" 
 	
 	Write-Output ""
 	Write-Output "To check the state of jobs use Get-Job"
