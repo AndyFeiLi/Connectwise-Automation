@@ -171,6 +171,38 @@ $code = {
 				}
 				
 				
+				#check if it is an external drive
+				if($notes -eq "External drive full - no action required")
+				{
+					write-output "here"
+					$driveLetter = $ticket.summary.split(" ")[2][0].toString()
+					$computerID = $ticket.summary.split(" ")[8]
+					
+					#$driveLetter = "E"
+					#$computerID = "875"
+					#$driveLetter = $summary.split(" ")[2][0].toString()
+					#$computerID = $summary.split(" ")[8]
+					#write-output "token is:"
+					#write-output $token
+					#write-output "header is"
+					#write-output $Header
+					
+					$uri = "https://cloudconnect.hostedrmm.com/cwa/api/v1/Computers/"+$computerID+"/Drives/"
+					$Header = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+					$Header.Add("Authorization", "Bearer "+$token)
+					$d=Invoke-RestMethod -Uri $uri -Method GET -ContentType "application/json" -Headers $Header 
+					$table = $d.letter | ForEach-Object -Begin { $wordCounts=@{} } -Process { $wordCounts.$_++ } -End { $wordCounts }
+					if($table.$driveLetter -gt 1){
+						#if there are more than once instance of this drive letter, this is an external drive, proceed to close ticket
+						Write-Output "external"
+					}else{
+						#if this is an internal drive - put a note to email client and don't close ticket
+						Write-Output "internal"
+						$closeTicket = $false
+						$notes = "Internal drive - send email to client"
+					}
+				}
+				
 				#schedule script 439 dism-sfc combo
 				if($notes -eq "Schedulled Dism-SFC combo")
 				{
@@ -200,6 +232,8 @@ $code = {
 				Add-CWMTimeNote -ticketID $ticket.id -notes $finalNote
 				if($closeTicket)
 				{
+					#change resource - not working yet
+					#$result = Update-CWMTicket -TicketID $ticket.id -Operation "replace" -Path "resources" -Value "Andy"
 					$result = Update-CWMTicket -TicketID $ticket.id -Operation "replace" -Path "status" -Value $completed
 				}	
 				$output = [pscustomobject]@{
@@ -270,7 +304,6 @@ function Begin-Automation
 	Apply-Filter -token $token -tickets $tickets -notes "Unnecessary ticket." -summary "Ticket #*/has been submitted to Cloud Connect Helpdesk" -text ""	
 	Apply-Filter -token $token -tickets $tickets -notes "Notification from LabTech - not a ticket." -summary "Message Center Major Change Update Notification" -text ""	
 	Apply-Filter -token $token -tickets $tickets -notes "Email - not a ticket." -summary "Weekly digest: Office 365 changes" -text "" 
-	
 	Apply-Filter -token $token -tickets $tickets -notes "Service has stopped - no action required." -summary "*Service * is Stopped for *" -text "*The Service Monitor detected that the service*is Stopped.*" 
 	Apply-Filter -token $token -tickets $tickets -notes "External drive errors - no action required." -summary "*Drive Errors and Raid Failures*" -text "*\Device\Harddisk*\DR*" 
 	Apply-Filter -token $token -tickets $tickets -notes "Single Log on Failure - no action required." -summary "Security Audit Failure:*" -text "*Microsoft-Windows-Security-Auditing-An account failed to log on*" 
@@ -289,12 +322,31 @@ function Begin-Automation
 	Apply-Filter -token $token -tickets $tickets -notes "Schedulled Reboot after 14hrs" -summary "*UPTIME - Over 1 Month Without Reboot:49*" -text "*UPTIME - Over 1 Month Without Reboot* Detected on*at*" 
 	Apply-Filter -token $token -tickets $tickets -notes "Schedulled Dism-SFC combo" -summary "Security Audit Failure:*" -text "*Microsoft-Windows-Security-Auditing-Code Integrity determined that the * hash* of *file * not valid.*" 
 	Apply-Filter -token $token -tickets $tickets -notes "Workstation Retired" -summary "*LT - Agents No Checkin for More Than 30 Days:* - *" -text "*Agent on * has not reported in since * and should be reinstalled or fixed.*" 
-	
 	Apply-Filter -token $token -tickets $tickets -notes "Schedulled Reboot after 14hrs to install updates" -summary "*UPDATES -  Out of Date:2*" -text "*UPDATES -*Out of Date FAILED on * at *- Updates have not been installed on this machine for over 30 days as of*" 
+	
+	#working on this one
+	Apply-Filter -token $token -tickets $tickets -notes "External drive full - no action required" -summary "Disk - *: Drive Space Critical-*(*):* - *:*" -text "*Disk - *: Drive Space Critical-*(*) FAILED on * for Disk - *: Drive Space Critical-* is under * of free space.*" 
+	#
 	
 	Write-Output ""
 	Write-Output "To check the state of jobs use Get-Job"
 } 
+
+function testfun {
+
+	$time = Get-Date
+	Add-Content C:\Users\Andy\output.txt $time
+
+	#get current tickets
+	Invoke-Expression $code.ToString()
+	Start-CWMConnection
+	$tickets=Get-CWMTicket -condition "id>$startTicketID" -pageSize 1000
+	
+	Start-CWMConnection
+	Clean-TicketBoard -summary "Disk - *: Drive Space Critical-*(*):* - *:*" -text "*Disk - *: Drive Space Critical-*(*) FAILED on * for Disk - *: Drive Space Critical-* is under * of free space.*"  -tickets $tickets -notes "External drive full - no action required" -token $token
+	Disconnect-CWM
+
+}
 
 #mainloop
 while ($token -eq $null)
@@ -310,4 +362,5 @@ while ($token -eq $null)
 }
 Write-output "Authenticated successfully with Automate"
 Begin-Automation
+#testfun
 
