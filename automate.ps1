@@ -194,12 +194,20 @@ $code = {
 					$table = $d.letter | ForEach-Object -Begin { $wordCounts=@{} } -Process { $wordCounts.$_++ } -End { $wordCounts }
 					if($table.$driveLetter -gt 1){
 						#if there are more than once instance of this drive letter, this is an external drive, proceed to close ticket
-						Write-Output "external"
+						Write-Output "external"			
+						
 					}else{
 						#if this is an internal drive - put a note to email client and don't close ticket
 						Write-Output "internal"
 						$closeTicket = $false
-						$notes = "Internal drive - send email to client"
+						
+						#get the last logged in user name
+						$uri = "https://cloudconnect.hostedrmm.com/cwa/api/v1/Computers/"+$computerID
+						$c=Invoke-RestMethod -Uri $uri -Method GET -ContentType "application/json" -Headers $Header
+						$userName = $c.LastUserName
+						$computerName = $c.ComputerName
+						
+						$notes = "Internal drive - send email to client: " + $userName + " regarding workstation " + $computerName
 					}
 				}
 				
@@ -324,9 +332,10 @@ function Begin-Automation
 	Apply-Filter -token $token -tickets $tickets -notes "Workstation Retired" -summary "*LT - Agents No Checkin for More Than 30 Days:* - *" -text "*Agent on * has not reported in since * and should be reinstalled or fixed.*" 
 	Apply-Filter -token $token -tickets $tickets -notes "Schedulled Reboot after 14hrs to install updates" -summary "*UPDATES -  Out of Date:2*" -text "*UPDATES -*Out of Date FAILED on * at *- Updates have not been installed on this machine for over 30 days as of*" 
 	
-	#working on this one
 	Apply-Filter -token $token -tickets $tickets -notes "External drive full - no action required" -summary "Disk - *: Drive Space Critical-*(*):* - *:*" -text "*Disk - *: Drive Space Critical-*(*) FAILED on * for Disk - *: Drive Space Critical-* is under * of free space.*" 
-	#
+	
+	#working on this one
+	Apply-Filter -token $token -tickets $tickets -notes "CWA failed to get the windows license key on this machine. CWA issue - low priority, no action required" -summary "Get Product Keys Script Failed*" -text "*The Get Product Keys script did not create a string containing Product Key information. Exiting Script*" 
 	
 	Write-Output ""
 	Write-Output "To check the state of jobs use Get-Job"
