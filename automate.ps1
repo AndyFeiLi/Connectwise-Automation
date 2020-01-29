@@ -134,6 +134,7 @@ $code = {
 		
 		#create completed status object
 		$completed = @{id=""; name="Completed"; _info=""}
+		$inProgress = @{id=""; name="In Progress"; _info=""}
 		
 		$autoMessage = "
 			
@@ -178,21 +179,12 @@ $code = {
 					$driveLetter = $ticket.summary.split(" ")[2][0].toString()
 					$computerID = $ticket.summary.split(" ")[8]
 					
-					#$driveLetter = "E"
-					#$computerID = "875"
-					#$driveLetter = $summary.split(" ")[2][0].toString()
-					#$computerID = $summary.split(" ")[8]
-					#write-output "token is:"
-					#write-output $token
-					#write-output "header is"
-					#write-output $Header
-					
 					$uri = "https://cloudconnect.hostedrmm.com/cwa/api/v1/Computers/"+$computerID+"/Drives/"
 					$Header = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
 					$Header.Add("Authorization", "Bearer "+$token)
 					$d=Invoke-RestMethod -Uri $uri -Method GET -ContentType "application/json" -Headers $Header 
 					$table = $d.letter | ForEach-Object -Begin { $wordCounts=@{} } -Process { $wordCounts.$_++ } -End { $wordCounts }
-					if($table.$driveLetter -gt 1){
+					if(($table.$driveLetter -gt 1) -and ($driveLetter -ne "C")){
 						#if there are more than once instance of this drive letter, this is an external drive, proceed to close ticket
 						Write-Output "external"			
 						
@@ -208,6 +200,39 @@ $code = {
 						$computerName = $c.ComputerName
 						
 						$notes = "Internal drive - send email to client: " + $userName + " regarding workstation " + $computerName
+						$result = Update-CWMTicket -TicketID $ticket.id -Operation "replace" -Path "status" -Value $inProgress
+					}
+				}
+				
+				#check if it is an external drive (DRV ticket format)
+				if($notes -eq "DRV - External drive full - no action required")
+				{
+					write-output "here"
+					$driveLetter = $ticket.summary.split(" ")[12]
+					$computerID = $ticket.summary.split(" ")[11]
+					
+					$uri = "https://cloudconnect.hostedrmm.com/cwa/api/v1/Computers/"+$computerID+"/Drives/"
+					$Header = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+					$Header.Add("Authorization", "Bearer "+$token)
+					$d=Invoke-RestMethod -Uri $uri -Method GET -ContentType "application/json" -Headers $Header 
+					$table = $d.letter | ForEach-Object -Begin { $wordCounts=@{} } -Process { $wordCounts.$_++ } -End { $wordCounts }
+					if(($table.$driveLetter -gt 1) -and ($driveLetter -ne "C")){
+						# if there are more than once instance of this drive letter, this is an external drive, proceed to close ticket
+						Write-Output "external"			
+						
+					}else{
+						# if this is an internal drive - put a note to email client and don't close ticket
+						Write-Output "internal"
+						$closeTicket = $false
+						
+						# get the last logged in user name
+						$uri = "https://cloudconnect.hostedrmm.com/cwa/api/v1/Computers/"+$computerID
+						$c=Invoke-RestMethod -Uri $uri -Method GET -ContentType "application/json" -Headers $Header
+						$userName = $c.LastUserName
+						$computerName = $c.ComputerName
+						
+						$notes = "Internal drive - send email to client: " + $userName + " regarding workstation " + $computerName
+						$result = Update-CWMTicket -TicketID $ticket.id -Operation "replace" -Path "status" -Value $inProgress
 					}
 				}
 				
@@ -310,6 +335,8 @@ function Begin-Automation
 	#write-output $tickets.count
 	
 	
+	###working filters###
+	
 	Apply-Filter -token $token -tickets $tickets -notes "Unnecessary ticket." -summary "Ticket #*/has been submitted to Cloud Connect Helpdesk" -text ""	
 	Apply-Filter -token $token -tickets $tickets -notes "Notification from LabTech - not a ticket." -summary "Message Center Major Change Update Notification" -text ""	
 	Apply-Filter -token $token -tickets $tickets -notes "Email - not a ticket." -summary "Weekly digest: Office 365 changes" -text "" 
@@ -318,6 +345,9 @@ function Begin-Automation
 	Apply-Filter -token $token -tickets $tickets -notes "External drive errors - no action required." -summary "*Drive Errors and Raid Failures*" -text "*The driver detected a controller error on \*\DR*" 
 	Apply-Filter -token $token -tickets $tickets -notes "Single Log on Failure - no action required." -summary "Security Audit Failure:*" -text "*Microsoft-Windows-Security-Auditing-An account failed to log on*" 
 	Apply-Filter -token $token -tickets $tickets -notes "Cryptographic Operation Failure - no action required." -summary "Security Audit Failure:*" -text "*Microsoft-Windows-Security-Auditing-Cryptographic operation.*" 
+	
+	Apply-Filter -token $token -tickets $tickets -notes "External drive errors - no action required." -summary "Critical Blacklist Events - Warnings and Errors for*" -text "*The driver detected a controller error on \*\DR*" 
+	
 	
 	Apply-Filter -token $token -tickets $tickets -notes "Temporary disconnection from DNS server - no action required." -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found:*herwise, this computer sets up the secure session to any domain controller in the specified domain.*" 
 	Apply-Filter -token $token -tickets $tickets -notes "Temporary disconnection from DNS server - no action required." -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found:*name resolution failure. Verify your Domain Name System (DNS) is configured and working correctly.*" 
@@ -337,10 +367,16 @@ function Begin-Automation
 	
 	Apply-Filter -token $token -tickets $tickets -notes "External drive full - no action required" -summary "Disk - *: Drive Space Critical-*(*):* - *:*" -text "*Disk - *: Drive Space Critical-*(*) FAILED on * for Disk - *: Drive Space Critical-* is under * of free space.*" 
 	
-	Apply-Filter -token $token -tickets $tickets -notes "CWA failed to get the windows license key on this machine. CWA issue - low priority, no action required" -summary "Get Product Keys Script Failed*" -text "*The Get Product Keys script did not create a string containing Product Key information. Exiting Script*" 
+	Apply-Filter -token $token -tickets $tickets -notes "CWA failed to get the windows license key on this machine. CWA issue - low priority, no action required" -summary "Get Product Keys Script Failed*" -text "*The Get Product Keys script did not create a string containing Product Key information. Exiting Script*" 	
+	Apply-Filter -token $token -tickets $tickets -notes "DRV - External drive full - no action required" -summary "DRV - Free Space Remaining < 10% Total Size:*-*" -text "*Drive Free Space to very low on*" 
 	
+	####working filters###
+		
 	#place holder for filtering whitelisted apps
 	#Apply-Filter -token $token -tickets $tickets -notes "whitelisted" -summary "Unclassified Apps Located for*" -text "*The application that needs classification  is Java 8 Update 241 (64-bit)*" 
+	
+	#working on this one
+	
 	
 	
 	
