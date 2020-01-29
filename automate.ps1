@@ -201,6 +201,9 @@ $code = {
 						
 						$notes = "Internal drive - send email to client: " + $userName + " regarding workstation " + $computerName
 						$result = Update-CWMTicket -TicketID $ticket.id -Operation "replace" -Path "status" -Value $inProgress
+						
+						$owner = @{id=""; identifier="Andy"; name="Andy Li"; _info=""}
+						Update-CWMTicket -TicketID $ticket.id -Operation "replace" -Path "owner" -Value $owner
 					}
 				}
 				
@@ -233,6 +236,9 @@ $code = {
 						
 						$notes = "Internal drive - send email to client: " + $userName + " regarding workstation " + $computerName
 						$result = Update-CWMTicket -TicketID $ticket.id -Operation "replace" -Path "status" -Value $inProgress
+						
+						$owner = @{id=""; identifier="Andy"; name="Andy Li"; _info=""}
+						Update-CWMTicket -TicketID $ticket.id -Operation "replace" -Path "owner" -Value $owner
 					}
 				}
 				
@@ -266,9 +272,11 @@ $code = {
 				if($closeTicket)
 				{
 					#change resource - not working yet
-					#$result = Update-CWMTicket -TicketID $ticket.id -Operation "replace" -Path "resources" -Value "Andy"
+					$owner = @{id=""; identifier="Andy"; name="Andy Li"; _info=""}
+					Update-CWMTicket -TicketID $ticket.id -Operation "replace" -Path "owner" -Value $owner
 					$result = Update-CWMTicket -TicketID $ticket.id -Operation "replace" -Path "status" -Value $completed
 				}	
+				
 				$output = [pscustomobject]@{
 					TicketID = $ticket.id
 					Result = "Completed"
@@ -394,9 +402,11 @@ function testfun {
 	Start-CWMConnection
 	$tickets=Get-CWMTicket -condition "id>$startTicketID" -pageSize 1000
 	
-	Start-CWMConnection
-	Clean-TicketBoard -summary "Disk - *: Drive Space Critical-*(*):* - *:*" -text "*Disk - *: Drive Space Critical-*(*) FAILED on * for Disk - *: Drive Space Critical-* is under * of free space.*"  -tickets $tickets -notes "External drive full - no action required" -token $token
-	Disconnect-CWM
+	
+	#Clean-TicketBoard -summary "Disk - *: Drive Space Critical-*(*):* - *:*" -text "*Disk - *: Drive Space Critical-*(*) FAILED on * for Disk - *: Drive Space Critical-* is under * of free space.*"  -tickets $tickets -notes "External drive full - no action required" -token $token\
+	
+	
+	#Disconnect-CWM
 
 }
 
