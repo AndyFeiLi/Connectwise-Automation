@@ -6,8 +6,8 @@ $code = {
 	Import-Module .\CWManage.psm1
 	Import-Module .\password.ps1
 	
-	$startTicketID = 58000
-
+	$startTicketID = 58426
+	
 	function Start-CWMConnection
 	{
 		# This is the URL to your manage server.
@@ -141,11 +141,13 @@ $code = {
 		This ticket has been processed automatically by Cloudconnect's automation script.
 		If this ticket has been processed incorrectly, please contact andy@cloudconnect.tech"
 
-		#for relevant ticket update status to completed
+		#for relevant ticket, update status to completed
 		foreach($ticket in $target){
 			
 			#if ticket is New
 			if(!$ticket.status.name.CompareTo("New") -or !$ticket.status.name.CompareTo("New - Assigned")){
+			
+				$txt = $ticket.summary
 			
 				#schedule script reboot 
 				if($notes -eq "Schedulled Reboot after 14hrs")
@@ -156,7 +158,7 @@ $code = {
 				}
 				
 				#reboot script
-				if($notes -eq "Schedulled Reboot after 14hrs to install updates")
+				elseif($notes -eq "Schedulled Reboot after 14hrs to install updates")
 				{
 					$computerID = $ticket.summary.split(" ")[8]
 					$scriptID = "482"
@@ -164,16 +166,45 @@ $code = {
 				}
 				
 				#retire script
-				if($notes -eq "Workstation Retired")
+				elseif($notes -eq "Workstation Retired")
 				{
 					$computerID = $ticket.summary.split(" ")[12]
 					$scriptID = "481"
 					Schedule-Automatescript -computerID $computerID -scriptId $scriptID -token $token
 				}
 				
+				elseif($notes -eq "Sent Command - Force Remote Agent Update")
+				{		
+					#$closeTicket = $false
+					
+					$txt1 = $ticket.summary
+					
+					$Header = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+					$Header.Add("Authorization", "Bearer "+$token)
+					
+					#get computer name from ticket summary
+					$newArray = $ticket.summary.split(" ")
+					$computerName = $newArray[$newArray.Count - 1]
+					
+					#get computerID from computerName 
+					$uri = "https://cloudconnect.hostedrmm.com/cwa/api/v1/computers?condition=ComputerName contains '"+$computerName+"'"
+					$Header = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+					$Header.Add("Authorization", "Bearer "+$token)
+					$computer = Invoke-RestMethod -Uri $uri -Method GET -ContentType "application/json" -Headers $Header
+					$computerID = $computer.id
+					
+					#do not execute yet#execute update agent for this computerID
+					$uri = "https://cloudconnect.hostedrmm.com/cwa/api/v1/Computers/"+$computerID+"/commandexecute"
+					$postbod = '{"ComputerId":'+$computerID+',"Command":{"Id":1},"Parameters":["200.51"]}'
+					$result = Invoke-RestMethod -Uri $uri -Method POST -ContentType "application/json" -Headers $Header -Body $postbod
+					
+					#$notes = "Test Log: " +$ticket.id+" "+$ticket.summary +" "+$computerName + " " +$computerID + " " +$result
+				}
+				
+				
 				
 				#check if it is an external drive
-				if($notes -eq "External drive full - no action required")
+				elseif($notes -eq "External drive full - no action required")
 				{
 					write-output "here"
 					$driveLetter = $ticket.summary.split(" ")[2][0].toString()
@@ -208,7 +239,7 @@ $code = {
 				}
 				
 				#check if it is an external drive (DRV ticket format)
-				if($notes -eq "DRV - External drive full - no action required")
+				elseif($notes -eq "DRV - External drive full - no action required")
 				{
 					write-output "here"
 					$driveLetter = $ticket.summary.split(" ")[12]
@@ -235,6 +266,7 @@ $code = {
 						$computerName = $c.ComputerName
 						
 						$notes = "Internal drive - send email to client: " + $userName + " regarding workstation " + $computerName
+						#$notes = "test "+$ticket.id 
 						$result = Update-CWMTicket -TicketID $ticket.id -Operation "replace" -Path "status" -Value $inProgress
 						
 						$owner = @{id=""; identifier="Andy"; name="Andy Li"; _info=""}
@@ -243,7 +275,7 @@ $code = {
 				}
 				
 				#schedule script 439 dism-sfc combo
-				if($notes -eq "Schedulled Dism-SFC combo")
+				elseif($notes -eq "Schedulled Dism-SFC combo")
 				{
 					$computerID = $ticket.summary.split(" ")[5]
 					$scriptID = "439"
@@ -264,9 +296,10 @@ $code = {
 					#	$closeTicket = $false
 					#}
 				}
+				else{}
 			
 				
-				$finalNote = $notes + $autoMessage
+				$finalNote = $notes + $autoMessage 
 				#mark ticket as completed
 				Add-CWMTimeNote -ticketID $ticket.id -notes $finalNote
 				if($closeTicket)
@@ -307,6 +340,7 @@ $code = {
 		}
 		
 		Complete-Ticket -target $target -notes $notes -token $token
+		
 	} 
 }
 
@@ -350,12 +384,11 @@ function Begin-Automation
 	Apply-Filter -token $token -tickets $tickets -notes "Email - not a ticket." -summary "Weekly digest: Office 365 changes" -text "" 
 	Apply-Filter -token $token -tickets $tickets -notes "Service has stopped - no action required." -summary "*Service * is Stopped for *" -text "*The Service Monitor detected that the service*is Stopped.*" 
 	Apply-Filter -token $token -tickets $tickets -notes "External drive errors - no action required." -summary "*Drive Errors and Raid Failures*" -text "*\Device\Harddisk*\DR*" 
-	Apply-Filter -token $token -tickets $tickets -notes "External drive errors - no action required." -summary "*Drive Errors and Raid Failures*" -text "*The driver detected a controller error on \*\DR*" 
+	
 	Apply-Filter -token $token -tickets $tickets -notes "Single Log on Failure - no action required." -summary "Security Audit Failure:*" -text "*Microsoft-Windows-Security-Auditing-An account failed to log on*" 
 	Apply-Filter -token $token -tickets $tickets -notes "Cryptographic Operation Failure - no action required." -summary "Security Audit Failure:*" -text "*Microsoft-Windows-Security-Auditing-Cryptographic operation.*" 
 	
 	Apply-Filter -token $token -tickets $tickets -notes "External drive errors - no action required." -summary "Critical Blacklist Events - Warnings and Errors for*" -text "*The driver detected a controller error on \*\DR*" 
-	
 	
 	Apply-Filter -token $token -tickets $tickets -notes "Temporary disconnection from DNS server - no action required." -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found:*herwise, this computer sets up the secure session to any domain controller in the specified domain.*" 
 	Apply-Filter -token $token -tickets $tickets -notes "Temporary disconnection from DNS server - no action required." -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found:*name resolution failure. Verify your Domain Name System (DNS) is configured and working correctly.*" 
@@ -377,6 +410,7 @@ function Begin-Automation
 	
 	Apply-Filter -token $token -tickets $tickets -notes "CWA failed to get the windows license key on this machine. CWA issue - low priority, no action required" -summary "Get Product Keys Script Failed*" -text "*The Get Product Keys script did not create a string containing Product Key information. Exiting Script*" 	
 	Apply-Filter -token $token -tickets $tickets -notes "DRV - External drive full - no action required" -summary "DRV - Free Space Remaining < 10% Total Size:*-*" -text "*Drive Free Space to very low on*" 
+	Apply-Filter -token $token -tickets $tickets -notes "Sent Command - Force Remote Agent Update" -summary "An Out Of Date Labtech Agent was detected at*" -text "*An old agent has been detected on*" 
 	
 	####working filters###
 		
@@ -384,7 +418,6 @@ function Begin-Automation
 	#Apply-Filter -token $token -tickets $tickets -notes "whitelisted" -summary "Unclassified Apps Located for*" -text "*The application that needs classification  is Java 8 Update 241 (64-bit)*" 
 	
 	#working on this one
-	
 	
 	
 	
