@@ -1,5 +1,0 @@
-$myServer = "au.myconnectwise.net"
-$myCompany = "MyCompanyName"
-$mypubkey = "XXXXXXXXXXXXXXXX"
-$myprivatekey = "XXXXXXXXXXXXXXXX"
-$myclientId = "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
