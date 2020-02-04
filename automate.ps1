@@ -386,7 +386,7 @@ function Begin-Automation
 	Apply-Filter -token $token -tickets $tickets -notes "External drive errors - no action required." -summary "*Drive Errors and Raid Failures*" -text "*\Device\Harddisk*\DR*" 
 	
 	Apply-Filter -token $token -tickets $tickets -notes "Single Log on Failure - no action required." -summary "Security Audit Failure:*" -text "*Microsoft-Windows-Security-Auditing-An account failed to log on*" 
-	Apply-Filter -token $token -tickets $tickets -notes "Cryptographic Operation Failure - no action required." -summary "Security Audit Failure:*" -text "*Microsoft-Windows-Security-Auditing-Cryptographic operation.*" 
+	Apply-Filter -token $token -tickets $tickets -notes "Cryptographic Operation Failure - no action required." -summary "*Security Audit Failure:*" -text "*Microsoft-Windows-Security-Auditing-Cryptographic operation.*" 
 	
 	Apply-Filter -token $token -tickets $tickets -notes "External drive errors - no action required." -summary "Critical Blacklist Events - Warnings and Errors for*" -text "*The driver detected a controller error on \*\DR*" 
 	
@@ -404,21 +404,20 @@ function Begin-Automation
 	Apply-Filter -token $token -tickets $tickets -notes "Schedulled Reboot after 14hrs" -summary "*UPTIME - Over 1 Month Without Reboot:49*" -text "*UPTIME - Over 1 Month Without Reboot* Detected on*at*" 
 	Apply-Filter -token $token -tickets $tickets -notes "Schedulled Dism-SFC combo" -summary "Security Audit Failure:*" -text "*Microsoft-Windows-Security-Auditing-Code Integrity determined that the * hash* of *file * not valid.*" 
 	Apply-Filter -token $token -tickets $tickets -notes "Workstation Retired" -summary "*LT - Agents No Checkin for More Than 30 Days:* - *" -text "*Agent on * has not reported in since * and should be reinstalled or fixed.*" 
-	Apply-Filter -token $token -tickets $tickets -notes "Schedulled Reboot after 14hrs to install updates" -summary "*UPDATES -  Out of Date:2*" -text "*UPDATES -*Out of Date FAILED on * at *- Updates have not been installed on this machine for over 30 days as of*" 
+	Apply-Filter -token $token -tickets $tickets -notes "Schedulled Reboot after 14hrs to install updates" -summary "*UPDATES -  Out of Date:2*" -text "*UPDATES -*Out of Date FAILED on * at *- Updates have not been installed on this machine for over 30 days as of*" 	
 	
-	Apply-Filter -token $token -tickets $tickets -notes "External drive full - no action required" -summary "Disk - *: Drive Space Critical-*(*):* - *:*" -text "*Disk - *: Drive Space Critical-*(*) FAILED on * for Disk - *: Drive Space Critical-* is under * of free space.*" 
-	
-	Apply-Filter -token $token -tickets $tickets -notes "CWA failed to get the windows license key on this machine. CWA issue - low priority, no action required" -summary "Get Product Keys Script Failed*" -text "*The Get Product Keys script did not create a string containing Product Key information. Exiting Script*" 	
-	Apply-Filter -token $token -tickets $tickets -notes "DRV - External drive full - no action required" -summary "DRV - Free Space Remaining < 10% Total Size:*-*" -text "*Drive Free Space to very low on*" 
+	Apply-Filter -token $token -tickets $tickets -notes "CWA failed to get the windows license key on this machine. CWA issue - low priority, no action required" -summary "Get Product Keys Script Failed*" -text "*The Get Product Keys script did not create a string containing Product Key information. Exiting Script*" 		
 	Apply-Filter -token $token -tickets $tickets -notes "Sent Command - Force Remote Agent Update" -summary "An Out Of Date Labtech Agent was detected at*" -text "*An old agent has been detected on*" 
-	
+		
 	####working filters###
 		
 	#place holder for filtering whitelisted apps
 	#Apply-Filter -token $token -tickets $tickets -notes "whitelisted" -summary "Unclassified Apps Located for*" -text "*The application that needs classification  is Java 8 Update 241 (64-bit)*" 
 	
 	#working on this one
-	
+	#some bugs here notes not updating properly and status not updated
+	#Apply-Filter -token $token -tickets $tickets -notes "External drive full - no action required" -summary "Disk - *: Drive Space Critical-*(*):* - *:*" -text "*Disk - *: Drive Space Critical-*(*) FAILED on * for Disk - *: Drive Space Critical-* is under * of free space.*" 
+	#Apply-Filter -token $token -tickets $tickets -notes "DRV - External drive full - no action required" -summary "DRV - Free Space Remaining < 10% Total Size:*-*" -text "*Drive Free Space to very low on*" 
 	
 	
 	Write-Output ""
