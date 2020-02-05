@@ -6,7 +6,7 @@ $code = {
 	Import-Module .\CWManage.psm1
 	Import-Module .\password.ps1
 	
-	$startTicketID = 58426
+	$startTicketID = 58879
 	
 	function Start-CWMConnection
 	{
@@ -230,8 +230,8 @@ $code = {
 						$userName = $c.LastUserName
 						$computerName = $c.ComputerName
 						
-						$notes = "Internal drive - send email to client: " + $userName + " regarding workstation " + $computerName
-						$result = Update-CWMTicket -TicketID $ticket.id -Operation "replace" -Path "status" -Value $inProgress
+						$progressNotes = "Internal drive - send email to client: " + $userName + " regarding workstation " + $computerName
+						
 						
 						$owner = @{id=""; identifier="Andy"; name="Andy Li"; _info=""}
 						Update-CWMTicket -TicketID $ticket.id -Operation "replace" -Path "owner" -Value $owner
@@ -265,9 +265,8 @@ $code = {
 						$userName = $c.LastUserName
 						$computerName = $c.ComputerName
 						
-						$notes = "Internal drive - send email to client: " + $userName + " regarding workstation " + $computerName
-						#$notes = "test "+$ticket.id 
-						$result = Update-CWMTicket -TicketID $ticket.id -Operation "replace" -Path "status" -Value $inProgress
+						$progressNotes = "Internal drive - send email to client: " + $userName + " regarding workstation " + $computerName
+						
 						
 						$owner = @{id=""; identifier="Andy"; name="Andy Li"; _info=""}
 						Update-CWMTicket -TicketID $ticket.id -Operation "replace" -Path "owner" -Value $owner
@@ -280,35 +279,48 @@ $code = {
 					$computerID = $ticket.summary.split(" ")[5]
 					$scriptID = "439"
 					
-					###BUGS here - commenting them out for now###
 					##if online schedule script, else put note saying script did not run
-					#$uri = "https://cloudconnect.hostedrmm.com/cwa/api/v1/Computers/"+$computerID
-					#$Header = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
-					#$Header.Add("Authorization", "Bearer "+$token)
-					#$targetComputer = Invoke-RestMethod -Uri $uri -Method GET -ContentType "application/json" -Headers $Header 
+					$uri = "https://cloudconnect.hostedrmm.com/cwa/api/v1/Computers/"+$computerID
+					$Header = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+					$Header.Add("Authorization", "Bearer "+$token)
+					$targetComputer = Invoke-RestMethod -Uri $uri -Method GET -ContentType "application/json" -Headers $Header 
 					
-					#if(!$targetComputer.status.CompareTo("Online"))
-					#{
+					if(!$targetComputer.status.CompareTo("Online"))
+					{
 						Schedule-Automatescript -computerID $computerID -scriptId $scriptID -token $token
-					#}
-					#else{
-					#	$notes = "Attempted to schedule Dism-SFC combo, however workstation is currently Offline."
-					#	$closeTicket = $false
-					#}
+					}
+					else{
+						$progressNotes = "Attempted to schedule Dism-SFC combo, however workstation is currently Offline."
+						$closeTicket = $false
+					}
 				}
 				else{}
 			
 				
-				$finalNote = $notes + $autoMessage 
+				
 				#mark ticket as completed
-				Add-CWMTimeNote -ticketID $ticket.id -notes $finalNote
+				
 				if($closeTicket)
 				{
-					#change resource - not working yet
+					
+					$finalNote = $notes + $autoMessage 
+					Add-CWMTimeNote -ticketID $ticket.id -notes $finalNote
+					
 					$owner = @{id=""; identifier="Andy"; name="Andy Li"; _info=""}
 					Update-CWMTicket -TicketID $ticket.id -Operation "replace" -Path "owner" -Value $owner
-					$result = Update-CWMTicket -TicketID $ticket.id -Operation "replace" -Path "status" -Value $completed
+					
+					Update-CWMTicket -TicketID $ticket.id -Operation "replace" -Path "status" -Value $completed
 				}	
+				else{
+					$finalNote = $progressNotes + $autoMessage 
+					Add-CWMTimeNote -ticketID $ticket.id -notes $finalNote
+					
+					$owner = @{id=""; identifier="Andy"; name="Andy Li"; _info=""}
+					Update-CWMTicket -TicketID $ticket.id -Operation "replace" -Path "owner" -Value $owner
+				
+					#Update-CWMTicket -TicketID $ticket.id -Operation "replace" -Path "status" -Value $inProgress
+				
+				}
 				
 				$output = [pscustomobject]@{
 					TicketID = $ticket.id
@@ -399,7 +411,7 @@ function Begin-Automation
 	Apply-Filter -token $token -tickets $tickets -notes "Temporary disconnection from DNS server - no action required." -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found:*the automatic updates service and therefore cannot download and install updates according to the se*" 
 	
 	Apply-Filter -token $token -tickets $tickets -notes "Process Monitor - no action required." -summary "Bad Process for * at *" -text "*The Bad Process Monitor detected a Process that is marked bad: * This process should be terminated.*" 
-	Apply-Filter -token $token -tickets $tickets -notes "System shutdown - no action required." -summary "Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found: System log - EventLog:  The previous system shutdown at * on * was unexpected.*" 
+	Apply-Filter -token $token -tickets $tickets -notes "System shutdown - no action required." -summary "Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found:*System log - EventLog:  The previous system shutdown at * on * was unexpected.*" 
 	
 	Apply-Filter -token $token -tickets $tickets -notes "Schedulled Reboot after 14hrs" -summary "*UPTIME - Over 1 Month Without Reboot:49*" -text "*UPTIME - Over 1 Month Without Reboot* Detected on*at*" 
 	Apply-Filter -token $token -tickets $tickets -notes "Schedulled Dism-SFC combo" -summary "Security Audit Failure:*" -text "*Microsoft-Windows-Security-Auditing-Code Integrity determined that the * hash* of *file * not valid.*" 
@@ -409,15 +421,17 @@ function Begin-Automation
 	Apply-Filter -token $token -tickets $tickets -notes "CWA failed to get the windows license key on this machine. CWA issue - low priority, no action required" -summary "Get Product Keys Script Failed*" -text "*The Get Product Keys script did not create a string containing Product Key information. Exiting Script*" 		
 	Apply-Filter -token $token -tickets $tickets -notes "Sent Command - Force Remote Agent Update" -summary "An Out Of Date Labtech Agent was detected at*" -text "*An old agent has been detected on*" 
 		
+		
+	Apply-Filter -token $token -tickets $tickets -notes "External drive full - no action required" -summary "Disk - *: Drive Space Critical-*(*):* - *:*" -text "*Disk - *: Drive Space Critical-*(*) FAILED on * for Disk - *: Drive Space Critical-* is under * of free space.*" 
+	Apply-Filter -token $token -tickets $tickets -notes "DRV - External drive full - no action required" -summary "DRV - Free Space Remaining < 10% Total Size:*-*" -text "*Drive Free Space to very low on*" 
 	####working filters###
 		
 	#place holder for filtering whitelisted apps
 	#Apply-Filter -token $token -tickets $tickets -notes "whitelisted" -summary "Unclassified Apps Located for*" -text "*The application that needs classification  is Java 8 Update 241 (64-bit)*" 
 	
 	#working on this one
-	#some bugs here notes not updating properly and status not updated
-	#Apply-Filter -token $token -tickets $tickets -notes "External drive full - no action required" -summary "Disk - *: Drive Space Critical-*(*):* - *:*" -text "*Disk - *: Drive Space Critical-*(*) FAILED on * for Disk - *: Drive Space Critical-* is under * of free space.*" 
-	#Apply-Filter -token $token -tickets $tickets -notes "DRV - External drive full - no action required" -summary "DRV - Free Space Remaining < 10% Total Size:*-*" -text "*Drive Free Space to very low on*" 
+	#some bugs here notes not updating properly and status not updated - notes cannot be changed mid loop, 
+	
 	
 	
 	Write-Output ""
