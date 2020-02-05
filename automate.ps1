@@ -471,4 +471,9 @@ while ($token -eq $null)
 Write-output "Authenticated successfully with Automate"
 Begin-Automation
 #testfun
-
+##
+#get security log text processing - get workstation name
+#$t=Get-CWMTicketNote -ticketID 56467          
+#$s = $t.text
+#$s.split("\")[1].split(" ")[0]
+##
