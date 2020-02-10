@@ -259,7 +259,7 @@ $code = {
 						$userName = $c.LastUserName
 						$computerName = $c.ComputerName
 						
-						$progressNotes = "Internal drive - send email to client: " + $userName + " regarding workstation " + $computerName
+						$progressNotes = "Internal drive full - send email to client: " + $userName + " regarding workstation " + $computerName
 						
 						
 						$owner = @{id=""; identifier="Andy"; name="Andy Li"; _info=""}
@@ -294,7 +294,7 @@ $code = {
 						$userName = $c.LastUserName
 						$computerName = $c.ComputerName
 						
-						$progressNotes = "Internal drive - send email to client: " + $userName + " regarding workstation " + $computerName
+						$progressNotes = "Internal drive full - send email to client: " + $userName + " regarding workstation " + $computerName
 						
 						
 						$owner = @{id=""; identifier="Andy"; name="Andy Li"; _info=""}
@@ -425,8 +425,10 @@ function Begin-Automation
 	Apply-Filter -token $token -tickets $tickets -notes "Email - not a ticket." -summary "Weekly digest: Office 365 changes" -text "" 
 	Apply-Filter -token $token -tickets $tickets -notes "Service has stopped - no action required." -summary "*Service * is Stopped for *" -text "*The Service Monitor detected that the service*is Stopped.*" 
 	Apply-Filter -token $token -tickets $tickets -notes "External drive errors - no action required." -summary "*Drive Errors and Raid Failures*" -text "*\Device\Harddisk*\DR*" 
+	Apply-Filter -token $token -tickets $tickets -notes "External drive errors - no action required." -summary "*Critical Blacklist Events - Warnings and Errors*" -text "*\Device\Harddisk*\DR*" 
 	
 	Apply-Filter -token $token -tickets $tickets -notes "Single Log on Failure - no action required." -summary "Security Audit Failure:*" -text "*Microsoft-Windows-Security-Auditing-An account failed to log on*" 
+	Apply-Filter -token $token -tickets $tickets -notes "Single Log on Failure - no action required." -summary "Security Audit Failure:*" -text "*Microsoft-Windows-Security-Auditing-A user was denied the access to Remote Desktop*" 
 	Apply-Filter -token $token -tickets $tickets -notes "Cryptographic Operation Failure - no action required." -summary "*Security Audit Failure:*" -text "*Microsoft-Windows-Security-Auditing-Cryptographic operation.*" 
 	
 	Apply-Filter -token $token -tickets $tickets -notes "External drive errors - no action required." -summary "Critical Blacklist Events - Warnings and Errors for*" -text "*The driver detected a controller error on \*\DR*" 
@@ -450,16 +452,17 @@ function Begin-Automation
 	Apply-Filter -token $token -tickets $tickets -notes "CWA failed to get the windows license key on this machine. CWA issue - low priority, no action required" -summary "Get Product Keys Script Failed*" -text "*The Get Product Keys script did not create a string containing Product Key information. Exiting Script*" 		
 	Apply-Filter -token $token -tickets $tickets -notes "Sent Command - Force Remote Agent Update" -summary "An Out Of Date Labtech Agent was detected at*" -text "*An old agent has been detected on*" 
 		
-		
 	Apply-Filter -token $token -tickets $tickets -notes "External drive full - no action required" -summary "Disk - *: Drive Space Critical-*(*):* - *:*" -text "*Disk - *: Drive Space Critical-*(*) FAILED on * for Disk - *: Drive Space Critical-* is under * of free space.*" 
 	Apply-Filter -token $token -tickets $tickets -notes "DRV - External drive full - no action required" -summary "DRV - Free Space Remaining < 10% Total Size:*-*" -text "*Drive Free Space to very low on*" 
+	
+	Apply-Filter -token $token -tickets $tickets -notes "Scheduled script to return security log information, results will be returned in around 15 minutes" -summary "Security Event Log Count:*" -text "*EV- Security Event Log Count FAILED on * at * for*" 
 	####working filters###
 		
 	#place holder for filtering whitelisted apps
 	#Apply-Filter -token $token -tickets $tickets -notes "whitelisted" -summary "Unclassified Apps Located for*" -text "*The application that needs classification  is Java 8 Update 241 (64-bit)*" 
 	
 	#working on this one
-	Apply-Filter -token $token -tickets $tickets -notes "Scheduled script to return security log information, results will be returned in around 15 minutes" -summary "Security Event Log Count:*" -text "*EV- Security Event Log Count FAILED on * at * for*" 
+	
 	
 	
 	
