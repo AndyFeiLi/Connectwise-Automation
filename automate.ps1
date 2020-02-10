@@ -69,7 +69,8 @@ $code = {
 		param(
 			[string]$computerID,
 			[string]$scriptID,
-			[string]$token
+			[string]$token,
+			[string]$param
 		)
 		
 		$Header = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
@@ -97,7 +98,7 @@ $code = {
 		$PostBody.Add("NextRun", $getdate)
 		$PostBody.Add("NextSchedule", $getdate)
 		$PostBody.Add("OfflineOnly", $false)
-		$PostBody.Add("Parameters", "")
+		$PostBody.Add("Parameters", $param)
 		$PostBody.Add("Priority", 15)
 		$PostBody.Add("RepeatAmount", 0)
 		$PostBody.Add("RepeatStopAfter", 0)
@@ -154,7 +155,8 @@ $code = {
 				{
 					$computerID = $ticket.summary.split(" ")[9]
 					$scriptID = "482"
-					Schedule-Automatescript -computerID $computerID -scriptId $scriptID -token $token
+					$param = ""
+					Schedule-Automatescript -computerID $computerID -scriptId $scriptID -token $token -param $param
 				}
 				
 				#reboot script
@@ -162,7 +164,8 @@ $code = {
 				{
 					$computerID = $ticket.summary.split(" ")[8]
 					$scriptID = "482"
-					Schedule-Automatescript -computerID $computerID -scriptId $scriptID -token $token
+					$param = ""
+					Schedule-Automatescript -computerID $computerID -scriptId $scriptID -token $token -param $param
 				}
 				
 				#retire script
@@ -170,8 +173,34 @@ $code = {
 				{
 					$computerID = $ticket.summary.split(" ")[12]
 					$scriptID = "481"
-					Schedule-Automatescript -computerID $computerID -scriptId $scriptID -token $token
+					$param = ""
+					Schedule-Automatescript -computerID $computerID -scriptId $scriptID -token $token -param $param
 				}
+				
+				#return security log script
+				elseif($notes -eq "Scheduled script to return security log information, results will be returned in around 15 minutes")
+				{
+					#get computer name
+					$t=Get-CWMTicketNote -ticketID $ticket.id          
+					$s = $t.text
+					$computerName = $s.split("\")[1].split(" ")[0]
+					
+					$uri = "https://cloudconnect.hostedrmm.com/cwa/api/v1/computers?condition=ComputerName contains '"+$computerName+"'"
+					$Header = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+					$Header.Add("Authorization", "Bearer "+$token)
+					$computer = Invoke-RestMethod -Uri $uri -Method GET -ContentType "application/json" -Headers $Header
+					$computerID = $computer.id
+					
+					$param = "subject=" + "Service Ticket #" + $ticket.id + " - " + $ticket.summary + "|"
+					
+					$scriptID = "484"
+					Schedule-Automatescript -computerID $computerID -scriptId $scriptID -token $token -param $param
+					
+					$closeTicket = $false
+					
+					$progressNotes = $notes
+				}
+				
 				
 				elseif($notes -eq "Sent Command - Force Remote Agent Update")
 				{		
@@ -318,7 +347,7 @@ $code = {
 					$owner = @{id=""; identifier="Andy"; name="Andy Li"; _info=""}
 					Update-CWMTicket -TicketID $ticket.id -Operation "replace" -Path "owner" -Value $owner
 				
-					#Update-CWMTicket -TicketID $ticket.id -Operation "replace" -Path "status" -Value $inProgress
+					Update-CWMTicket -TicketID $ticket.id -Operation "replace" -Path "status" -Value $inProgress
 				
 				}
 				
@@ -430,7 +459,7 @@ function Begin-Automation
 	#Apply-Filter -token $token -tickets $tickets -notes "whitelisted" -summary "Unclassified Apps Located for*" -text "*The application that needs classification  is Java 8 Update 241 (64-bit)*" 
 	
 	#working on this one
-	#some bugs here notes not updating properly and status not updated - notes cannot be changed mid loop, 
+	Apply-Filter -token $token -tickets $tickets -notes "Scheduled script to return security log information, results will be returned in around 15 minutes" -summary "Security Event Log Count:*" -text "*EV- Security Event Log Count FAILED on * at * for*" 
 	
 	
 	
