@@ -456,7 +456,7 @@ function Begin-Automation
 	Apply-Filter -token $token -tickets $tickets -notes "External drive full - no action required" -summary "Disk - *: Drive Space Critical-*(*):* - *:*" -text "*Disk - *: Drive Space Critical-*(*) FAILED on * for Disk - *: Drive Space Critical-* is under * of free space.*" 
 	Apply-Filter -token $token -tickets $tickets -notes "DRV - External drive full - no action required" -summary "DRV - Free Space Remaining < 10% Total Size:*-*" -text "*Drive Free Space to very low on*" 
 	
-	Apply-Filter -token $token -tickets $tickets -notes "Scheduled script to return security log information, results will be returned in around 15 minutes" -summary "Security Event Log Count:*" -text "*EV- Security Event Log Count FAILED on * at * for*" 
+	Apply-Filter -token $token -tickets $tickets -notes "Scheduled script to return security log information, results will be returned in around 15 minutes" -summary "*Security Event Log Count:*" -text "*EV- Security Event Log Count FAILED on * at * for*" 
 	####working filters###
 		
 	#place holder for filtering whitelisted apps
