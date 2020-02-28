@@ -6,7 +6,9 @@ $code = {
 	Import-Module .\CWManage.psm1
 	Import-Module .\password.ps1
 	
-	$startTicketID = 59331
+	$startTicketID = 60439
+	
+
 	
 	function Start-CWMConnection
 	{
@@ -136,6 +138,7 @@ $code = {
 		#create completed status object
 		$completed = @{id=""; name="Completed"; _info=""}
 		$inProgress = @{id=""; name="In Progress"; _info=""}
+		$board = @{id=1; name="Help Desk"; _info=""}
 		
 		$autoMessage = "
 			
@@ -325,9 +328,9 @@ $code = {
 				}
 				else{}
 			
-				
-				
 				#mark ticket as completed
+				
+				Update-CWMTicket -TicketID $ticket.id -Operation "replace" -Path "board" -Value $board
 				
 				if($closeTicket)
 				{
@@ -443,7 +446,7 @@ function Begin-Automation
 	Apply-Filter -token $token -tickets $tickets -notes "Temporary disconnection from DNS server - no action required." -summary "*Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found: sage is in the data. Use nbtstat -n in a command window to see which name is in the Conflict state.*" 
 	
 	Apply-Filter -token $token -tickets $tickets -notes "Process Monitor - no action required." -summary "Bad Process for * at *" -text "*The Bad Process Monitor detected a Process that is marked bad: * This process should be terminated.*" 
-	Apply-Filter -token $token -tickets $tickets -notes "System shutdown - no action required." -summary "Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found:*System log - EventLog:  The previous system shutdown at * on * was unexpected.*" 
+	Apply-Filter -token $token -tickets $tickets -notes "System shutdown - no action required." -summary "Critical Blacklist Events - Warnings and Errors for*" -text "*The first Critical Blacklist Event found:*ystem log - EventLog:  The previous system shutdown at * on * was unexpected.*" 
 	
 	Apply-Filter -token $token -tickets $tickets -notes "Schedulled Reboot after 14hrs" -summary "*UPTIME - Over 1 Month Without Reboot:49*" -text "*UPTIME - Over 1 Month Without Reboot* Detected on*at*" 
 	Apply-Filter -token $token -tickets $tickets -notes "Schedulled Dism-SFC combo" -summary "Security Audit Failure:*" -text "*Microsoft-Windows-Security-Auditing-Code Integrity determined that the * hash* of *file * not valid.*" 
@@ -457,6 +460,8 @@ function Begin-Automation
 	Apply-Filter -token $token -tickets $tickets -notes "DRV - External drive full - no action required" -summary "DRV - Free Space Remaining < 10% Total Size:*-*" -text "*Drive Free Space to very low on*" 
 	
 	Apply-Filter -token $token -tickets $tickets -notes "Scheduled script to return security log information, results will be returned in around 15 minutes" -summary "*Security Event Log Count:*" -text "*EV- Security Event Log Count FAILED on * at * for*" 
+	
+	Apply-Filter -token $token -tickets $tickets -notes "Stale Agent, workstation retired - no action required" -summary "Webroot 3 - Stale Agents*" -text "*Webroot 3 - Stale Agents FAILED on*" 
 	####working filters###
 		
 	#place holder for filtering whitelisted apps
@@ -504,15 +509,3 @@ while ($token -eq $null)
 Write-output "Authenticated successfully with Automate"
 Begin-Automation
 #testfun
-##
-#get security log text processing - get workstation name
-#$t=Get-CWMTicketNote -ticketID 56467          
-#$s = $t.text
-#$s.split("\")[1].split(" ")[0]
-##
-#
-#
-#$list = New-Object Collections.Generic.List[String]
-#$list.add("service1")
-#$list.Contains("service11")
-#
