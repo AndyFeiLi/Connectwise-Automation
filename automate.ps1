@@ -6,7 +6,9 @@ $code = {
 	Import-Module .\CWManage.psm1
 	Import-Module .\password.ps1
 	
-	$startTicketID = 60439
+	$startTicketID = 62372
+	
+
 	
 
 	
@@ -247,7 +249,20 @@ $code = {
 					$Header.Add("Authorization", "Bearer "+$token)
 					$d=Invoke-RestMethod -Uri $uri -Method GET -ContentType "application/json" -Headers $Header 
 					$table = $d.letter | ForEach-Object -Begin { $wordCounts=@{} } -Process { $wordCounts.$_++ } -End { $wordCounts }
-					if(($table.$driveLetter -gt 1) -and ($driveLetter -ne "C")){
+					
+					$external = "false"
+					foreach($drive in $d){ 
+						if($drive.letter -eq $driveLetter){
+							#$drive.letter
+							if($drive.isInternal -eq "true" -or $drive.ismissing -eq "true"){
+								$external = "true"
+							}
+							
+						}
+					}
+					
+					
+					if((($table.$driveLetter -gt 1) -and ($driveLetter -ne "C")) -or $external -eq "true"){
 						#if there are more than once instance of this drive letter, this is an external drive, proceed to close ticket
 						Write-Output "external"			
 						
@@ -282,7 +297,19 @@ $code = {
 					$Header.Add("Authorization", "Bearer "+$token)
 					$d=Invoke-RestMethod -Uri $uri -Method GET -ContentType "application/json" -Headers $Header 
 					$table = $d.letter | ForEach-Object -Begin { $wordCounts=@{} } -Process { $wordCounts.$_++ } -End { $wordCounts }
-					if(($table.$driveLetter -gt 1) -and ($driveLetter -ne "C")){
+					
+					$external = "false"
+					foreach($drive in $d){ 
+						if($drive.letter -eq $driveLetter){
+							#$drive.letter
+							if($drive.isInternal -eq "true" -or $drive.ismissing -eq "true"){
+								$external = "true"
+							}
+							
+						}
+					}
+					
+					if((($table.$driveLetter -gt 1) -and ($driveLetter -ne "C")) -or $external -eq "true"){
 						# if there are more than once instance of this drive letter, this is an external drive, proceed to close ticket
 						Write-Output "external"			
 						
@@ -462,6 +489,7 @@ function Begin-Automation
 	Apply-Filter -token $token -tickets $tickets -notes "Scheduled script to return security log information, results will be returned in around 15 minutes" -summary "*Security Event Log Count:*" -text "*EV- Security Event Log Count FAILED on * at * for*" 
 	
 	Apply-Filter -token $token -tickets $tickets -notes "Stale Agent, workstation retired - no action required" -summary "Webroot 3 - Stale Agents*" -text "*Webroot 3 - Stale Agents FAILED on*" 
+	
 	####working filters###
 		
 	#place holder for filtering whitelisted apps
@@ -484,7 +512,7 @@ function testfun {
 	#get current tickets
 	Invoke-Expression $code.ToString()
 	Start-CWMConnection
-	$tickets=Get-CWMTicket -condition "id>$startTicketID" -pageSize 1000
+	$tickets=Get-CWMTicket -condition "id>56578" -pageSize 1000
 	
 	
 	#Clean-TicketBoard -summary "Disk - *: Drive Space Critical-*(*):* - *:*" -text "*Disk - *: Drive Space Critical-*(*) FAILED on * for Disk - *: Drive Space Critical-* is under * of free space.*"  -tickets $tickets -notes "External drive full - no action required" -token $token\
