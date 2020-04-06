@@ -1,4 +1,37 @@
-$time = Get-CWMTimeEntry -Condition 'dateEntered > [2020-4-1T01:00:00Z]' -all
+	Import-Module .\CWManage.psm1
+	Import-Module .\password.ps1
+	
+	function Start-CWMConnection
+	{
+		# This is the URL to your manage server.
+		$Server = $myServer
+
+		# This is the company entered at login
+		$Company = $myCompany
+
+		#Public and private key created in connectwise manage
+		$pubkey = $mypubkey
+		$privatekey = $myprivatekey
+
+		#ClientID created from https://developer.connectwise.com/ClientID
+		$clientId = $myclientId
+
+
+		# Connect to Manage server
+		$Connection = @{
+					Server = $Server
+					Company = $Company 
+					pubkey = $pubkey
+					privatekey = $privatekey
+					clientId = $clientId
+				}
+		Connect-CWM @Connection
+		Write-Output "Authenticated successfully with Manage"
+	} 
+	Start-CWMConnection
+
+
+$time = Get-CWMTimeEntry -Condition 'dateEntered > [2020-3-1T01:00:00Z]' -all
 $hours = 0
 $companyHours = @()
 
@@ -43,6 +76,9 @@ foreach($entry in $time){
 }
 
 $companyhours | Export-Csv -Path .\hours.csv
+
+#$xlfile = "$.\hours.xlsx"
+#$companyhours | Export-Excel $xlfile -AutoSize -StartRow 11 -TableName ReportService
 
 #$out = "ticketID|chargetotype|worktype|workrole|agreement|billableoption|name|company|hours|hoursbilled|hourlyrate|notes"
 #Add-Content -Path .\hours.txt -Value $out
