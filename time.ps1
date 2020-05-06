@@ -31,7 +31,7 @@
 	Start-CWMConnection
 
 
-$time = Get-CWMTimeEntry -Condition 'dateEntered > [2020-3-1T01:00:00Z]' -all
+$time = Get-CWMTimeEntry -Condition 'dateEntered > [2020-4-1T01:00:00Z] and dateEntered < [2020-5-1T01:00:00Z]' -all
 $hours = 0
 $companyHours = @()
 
@@ -77,13 +77,4 @@ foreach($entry in $time){
 
 $companyhours | Export-Csv -Path .\hours.csv
 
-#$xlfile = "$.\hours.xlsx"
-#$companyhours | Export-Excel $xlfile -AutoSize -StartRow 11 -TableName ReportService
 
-#$out = "ticketID|chargetotype|worktype|workrole|agreement|billableoption|name|company|hours|hoursbilled|hourlyrate|notes"
-#Add-Content -Path .\hours.txt -Value $out
-
-#$out = $companyhours|Format-Table -Property * -autosize |out-string -width 10000
-#Add-Content -Path .\hours.txt -Value $out
-
-#(gc .\hours.txt) | ? {$_.trim() -ne "" } | set-content .\hours.txt
