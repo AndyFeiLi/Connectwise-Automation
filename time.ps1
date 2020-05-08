@@ -30,8 +30,8 @@
 	} 
 	Start-CWMConnection
 
-
-$time = Get-CWMTimeEntry -Condition 'dateEntered > [2020-4-1T01:00:00Z] and dateEntered < [2020-5-1T01:00:00Z]' -all
+#dateentered
+$time = Get-CWMTimeEntry -Condition 'timeStart > [2020-4-1T01:00:00Z] and timeStart < [2020-5-1T01:00:00Z]' -all
 $hours = 0
 $companyHours = @()
 
