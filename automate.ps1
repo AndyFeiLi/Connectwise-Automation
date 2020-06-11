@@ -6,7 +6,7 @@ $code = {
 	Import-Module .\CWManage.psm1
 	Import-Module .\password.ps1
 	
-	$startTicketID = 62372
+	$startTicketID = 68900
 	
 
 	
@@ -56,7 +56,7 @@ $code = {
 
 		$getLaterDate = Get-Date
 		$getlaterdate = $getlaterdate.AddHours(-8)
-		$getlaterdate = $getlaterdate.AddMinutes(1)
+		#$getlaterdate = $getlaterdate.AddMinutes(1)
 		$getlaterdate = get-date $getlaterdate -Format "o"
 		$getlaterdate = $getlaterdate.substring(0, 17)
 		$getlaterdate = $getlaterdate+"00Z"
@@ -151,7 +151,7 @@ $code = {
 		foreach($ticket in $target){
 			
 			#if ticket is New
-			if(!$ticket.status.name.CompareTo("New") -or !$ticket.status.name.CompareTo("New - Assigned")){
+			if(!$ticket.status.name.CompareTo("New") -or !$ticket.status.name.CompareTo("New - Assigned") -or !$ticket.status.name.CompareTo("Follow Up - Requires Action")){
 			
 				$txt = $ticket.summary
 			
@@ -163,6 +163,25 @@ $code = {
 					$param = ""
 					Schedule-Automatescript -computerID $computerID -scriptId $scriptID -token $token -param $param
 				}
+				
+				#restart webroot
+				elseif($notes -eq "run cmd net start wrsvc")
+				{
+				
+					$computerName = $ticket.summary.split(" ")[8]
+					
+					#get computerID from computerName 
+					$uri = "https://cloudconnect.hostedrmm.com/cwa/api/v1/computers?condition=ComputerName contains '"+$computerName+"'"
+					$Header = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+					$Header.Add("Authorization", "Bearer "+$token)
+					$computer = Invoke-RestMethod -Uri $uri -Method GET -ContentType "application/json" -Headers $Header
+					$computerID = $computer.id
+					
+					$scriptID = "499"
+					$param = ""
+					Schedule-Automatescript -computerID $computerID -scriptId $scriptID -token $token -param $param
+				}
+				
 				
 				#reboot script
 				elseif($notes -eq "Schedulled Reboot after 14hrs to install updates")
@@ -229,7 +248,7 @@ $code = {
 					
 					#do not execute yet#execute update agent for this computerID
 					$uri = "https://cloudconnect.hostedrmm.com/cwa/api/v1/Computers/"+$computerID+"/commandexecute"
-					$postbod = '{"ComputerId":'+$computerID+',"Command":{"Id":1},"Parameters":["200.51"]}'
+					$postbod = '{"ComputerId":'+$computerID+',"Command":{"Id":1},"Parameters":["200.112"]}'
 					$result = Invoke-RestMethod -Uri $uri -Method POST -ContentType "application/json" -Headers $Header -Body $postbod
 					
 					#$notes = "Test Log: " +$ticket.id+" "+$ticket.summary +" "+$computerName + " " +$computerID + " " +$result
@@ -443,7 +462,7 @@ function Begin-Automation
 	#get current tickets
 	Invoke-Expression $code.ToString()
 	Start-CWMConnection
-	$tickets=Get-CWMTicket -condition "id>$startTicketID" -pageSize 1000
+	$tickets=Get-CWMTicket -condition "id>$startTicketID" -all
 	
 	#write-output $tickets.count
 	
@@ -489,16 +508,22 @@ function Begin-Automation
 	Apply-Filter -token $token -tickets $tickets -notes "Scheduled script to return security log information, results will be returned in around 15 minutes" -summary "*Security Event Log Count:*" -text "*EV- Security Event Log Count FAILED on * at * for*" 
 	
 	Apply-Filter -token $token -tickets $tickets -notes "Stale Agent, workstation retired - no action required" -summary "Webroot 3 - Stale Agents*" -text "*Webroot 3 - Stale Agents FAILED on*" 
+	Apply-Filter -token $token -tickets $tickets -notes "response time on port 80 - no action requried" -summary "TCP - HTTP Port 80:9995 - * 85 *" -text ""	
+	
+	Apply-Filter -token $token -tickets $tickets -notes "response time on port 443 - no action requried" -summary "TCP - HTTPS Port 443:9996 - * 85" -text ""	
 	
 	####working filters###
-		
+	
+	Apply-Filter -token $token -tickets $tickets -notes "run cmd net start wrsvc" -summary "Service wrsa is Process wrsa Not Found for*" -text ""	
+	
 	#place holder for filtering whitelisted apps
 	#Apply-Filter -token $token -tickets $tickets -notes "whitelisted" -summary "Unclassified Apps Located for*" -text "*The application that needs classification  is Java 8 Update 241 (64-bit)*" 
 	
 	#working on this one
 	
+	#Apply-Filter -token $token -tickets $tickets -notes "whitelisted" -summary "Unclassified Apps Located for*" -text "ScreenConnect Client (9109f1505fae5a99)"	
 	
-	
+
 	
 	Write-Output ""
 	Write-Output "To check the state of jobs use Get-Job"
