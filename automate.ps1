@@ -6,7 +6,7 @@ $code = {
 	Import-Module .\CWManage.psm1
 	Import-Module .\password.ps1
 	
-	$startTicketID = 68900
+	$startTicketID = 69500
 	
 
 	
@@ -376,7 +376,7 @@ $code = {
 			
 				#mark ticket as completed
 				
-				Update-CWMTicket -TicketID $ticket.id -Operation "replace" -Path "board" -Value $board
+				#Update-CWMTicket -TicketID $ticket.id -Operation "replace" -Path "board" -Value $board
 				
 				if($closeTicket)
 				{
@@ -512,9 +512,13 @@ function Begin-Automation
 	
 	Apply-Filter -token $token -tickets $tickets -notes "response time on port 443 - no action requried" -summary "TCP - HTTPS Port 443:9996 - * 85" -text ""	
 	
+	Apply-Filter -token $token -tickets $tickets -notes "run cmd net start wrsvc" -summary "*Service wrsa is Process wrsa Not Found for*" -text ""		
+	Apply-Filter -token $token -tickets $tickets -notes "Veeam Daily Backup Success, no action required" -summary "[INFRASTRUCTURE ISSUE] Veeam Cloud Connect daily report: 0 Errors, 0 Warnings, *" -text ""	
+	
 	####working filters###
 	
-	Apply-Filter -token $token -tickets $tickets -notes "run cmd net start wrsvc" -summary "Service wrsa is Process wrsa Not Found for*" -text ""	
+	
+	
 	
 	#place holder for filtering whitelisted apps
 	#Apply-Filter -token $token -tickets $tickets -notes "whitelisted" -summary "Unclassified Apps Located for*" -text "*The application that needs classification  is Java 8 Update 241 (64-bit)*" 
