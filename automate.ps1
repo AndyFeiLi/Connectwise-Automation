@@ -6,7 +6,7 @@ $code = {
 	Import-Module .\CWManage.psm1
 	Import-Module .\password.ps1
 	
-	$startTicketID = 69500
+	$startTicketID = 72000
 	
 
 	
@@ -248,7 +248,7 @@ $code = {
 					
 					#do not execute yet#execute update agent for this computerID
 					$uri = "https://cloudconnect.hostedrmm.com/cwa/api/v1/Computers/"+$computerID+"/commandexecute"
-					$postbod = '{"ComputerId":'+$computerID+',"Command":{"Id":1},"Parameters":["200.112"]}'
+					$postbod = '{"ComputerId":'+$computerID+',"Command":{"Id":1},"Parameters":["200.251"]}'
 					$result = Invoke-RestMethod -Uri $uri -Method POST -ContentType "application/json" -Headers $Header -Body $postbod
 					
 					#$notes = "Test Log: " +$ticket.id+" "+$ticket.summary +" "+$computerName + " " +$computerID + " " +$result
@@ -328,6 +328,11 @@ $code = {
 						}
 					}
 					
+					#sever NFTS1 is incorrectly marked as workstation in automate, do not apply to this server
+					if($computerID -eq 665){
+						$external = "false"
+					}
+					
 					if((($table.$driveLetter -gt 1) -and ($driveLetter -ne "C")) -or $external -eq "true"){
 						# if there are more than once instance of this drive letter, this is an external drive, proceed to close ticket
 						Write-Output "external"			
@@ -343,7 +348,7 @@ $code = {
 						$userName = $c.LastUserName
 						$computerName = $c.ComputerName
 						
-						$progressNotes = "Internal drive full - send email to client: " + $userName + " regarding workstation " + $computerName
+						$progressNotes = "Internal drive full - send email to client: " + $userName + " regarding server/workstation " + $computerName
 						
 						
 						$owner = @{id=""; identifier="Andy"; name="Andy Li"; _info=""}
@@ -462,7 +467,7 @@ function Begin-Automation
 	#get current tickets
 	Invoke-Expression $code.ToString()
 	Start-CWMConnection
-	$tickets=Get-CWMTicket -condition "id>$startTicketID" -all
+	$tickets=Get-CWMTicket -condition "id>$startTicketID" -pageSize 1000
 	
 	#write-output $tickets.count
 	
@@ -505,7 +510,7 @@ function Begin-Automation
 	Apply-Filter -token $token -tickets $tickets -notes "External drive full - no action required" -summary "Disk - *: Drive Space Critical-*(*):* - *:*" -text "*Disk - *: Drive Space Critical-*(*) FAILED on * for Disk - *: Drive Space Critical-* is under * of free space.*" 
 	Apply-Filter -token $token -tickets $tickets -notes "DRV - External drive full - no action required" -summary "DRV - Free Space Remaining < 10% Total Size:*-*" -text "*Drive Free Space to very low on*" 
 	
-	Apply-Filter -token $token -tickets $tickets -notes "Scheduled script to return security log information, results will be returned in around 15 minutes" -summary "*Security Event Log Count:*" -text "*EV- Security Event Log Count FAILED on * at * for*" 
+	Apply-Filter -token $token -tickets $tickets -notes "Scheduled script to return security log information, results will be returned in around 15 minutes" -summary "*Security Event Log Count:*" -text "" 
 	
 	Apply-Filter -token $token -tickets $tickets -notes "Stale Agent, workstation retired - no action required" -summary "Webroot 3 - Stale Agents*" -text "*Webroot 3 - Stale Agents FAILED on*" 
 	Apply-Filter -token $token -tickets $tickets -notes "response time on port 80 - no action requried" -summary "TCP - HTTP Port 80:9995 - * 85 *" -text ""	
@@ -513,7 +518,7 @@ function Begin-Automation
 	Apply-Filter -token $token -tickets $tickets -notes "response time on port 443 - no action requried" -summary "TCP - HTTPS Port 443:9996 - * 85" -text ""	
 	
 	Apply-Filter -token $token -tickets $tickets -notes "run cmd net start wrsvc" -summary "*Service wrsa is Process wrsa Not Found for*" -text ""		
-	Apply-Filter -token $token -tickets $tickets -notes "Veeam Daily Backup Success, no action required" -summary "[INFRASTRUCTURE ISSUE] Veeam Cloud Connect daily report: 0 Errors, 0 Warnings, *" -text ""	
+	Apply-Filter -token $token -tickets $tickets -notes "Veeam Daily Backup Success, no action required" -summary "*Veeam Cloud Connect daily report: 0 Errors, 0 Warnings,*" -text ""	
 	
 	####working filters###
 	
