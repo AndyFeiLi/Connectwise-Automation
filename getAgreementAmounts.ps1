@@ -37,27 +37,29 @@ $agree = Get-CWMAgreement -Condition 'type/name != "Break Fix" and type/name != 
 
 $d = @{}
 
+#gettrakka has 35 additions in total, 32+2
+
 foreach($entry in $agree){
-
-#	$additions = Get-CWMAgreementAddition  $entry.id
-
-#	if ($additions.product.identifier -eq "CC-RAM" -or $additions.product.identifier -eq "CC-CPU" -or $additions.product.identifier -eq "CC-SSD")
-#	{
-#		$alladditions = $alladditions + $additions
 	
 	if($d[$entry.company.identifier] -eq $null)
-	{
-	
-		
-		$addition = Get-CWMAgreementAddition $entry.id
+	{	
+		$addition = Get-CWMAgreementAddition $entry.id -all #-Condition 'product/identifier = "CC-SSD"' 
 	
 		$d.Add($entry.company.identifier, $addition)
 	}
+	else {
+	
+		$addition = Get-CWMAgreementAddition $entry.id -all
+		
+		$prevAddition = $d[$entry.company.identifier]
+		
+		$allAddition = $addition + $prevAddition
+		
+		$d[$entry.company.identifier] = $allAddition
+	
+	}
 
 }
-
-
-
 	
 #}
 $agree | Export-Csv -Path .\agree.csv
