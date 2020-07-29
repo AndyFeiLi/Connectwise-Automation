@@ -30,17 +30,16 @@ Import-Module .\password.ps1
 	} 
 
 Start-CWMConnection
+
+#get relevant agreements
 $agree = Get-CWMAgreement -Condition 'type/name != "Break Fix" and type/name != "TBS Install" and type/name != "3cx AMC + Base" and type/name != "zz-TBS installs" and company/identifier != "XYZTestCompany" and noEndingDateFlag = TRUE and name != "Monthly - Veeam O365" and name != "Monthly - Rack Space Rental" and name != "Custom Quote" and company/identifier != "CloudConnectPtyLtd"' -all 
-#$agree = Get-CWMAgreement -all
 
-#$alladditions = Get-CWMAgreementAddition 532
-
+#company dictionary
 $d = @{}
-
-#gettrakka has 35 additions in total, 32+2
 
 foreach($entry in $agree){
 	
+	#loop through agreements and add it to the corresponding company in the dictionary
 	if($d[$entry.company.identifier] -eq $null)
 	{	
 		$addition = Get-CWMAgreementAddition $entry.id -all -Condition 'product/identifier = "CC-SSD" or product/identifier = "CC-RAM" or product/identifier = "CC-CPU"' 
@@ -64,12 +63,45 @@ foreach($entry in $agree){
 			
 			$d[$entry.company.identifier] = $allAddition
 		}
-	
 	}
-
 }
 	
-#}
-$agree | Export-Csv -Path .\agree.csv
+#output object
+$output = @{}
+
+#loop through dictionary to sum up each CC-SSD, CC-RAM, CC-CPU if there are multiple agreement add-ons
+$d.GetEnumerator() | sort value -Descending | ForEach-Object{
+
+	$companyName = $_.name
+	$identifier = $_.value.product.identifier
+	$quantity = $_.value.quantity
+	
+	
+	write-output $companyName 
+	write-output $identifier 
+	write-output $quantity 
+	
+	$sumAddons = @{}
+	
+	for ($i=0; $i -le $identifier.count-1; $i++) {
+	
+		if($sumAddons[$identifier[$i]] -eq $null)
+		{
+			$sumAddons.add($identifier[$i],$quantity[$i])
+		}
+		else 
+		{
+			$prev = $sumAddons[$identifier[$i]]
+			
+			$sumAddons[$identifier[$i]] = $prev + $quantity[$i]
+		}
+		
+    }
+	
+	$output.Add($_.name, $sumAddons)
+	
+	
+}
+
 
 
