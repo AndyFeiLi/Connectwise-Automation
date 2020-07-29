@@ -77,9 +77,9 @@ $d.GetEnumerator() | sort value -Descending | ForEach-Object{
 	$quantity = $_.value.quantity
 	
 	
-	write-output $companyName 
-	write-output $identifier 
-	write-output $quantity 
+	#write-output $companyName 
+	#write-output $identifier 
+	#write-output $quantity 
 	
 	$sumAddons = @{}
 	
@@ -87,20 +87,34 @@ $d.GetEnumerator() | sort value -Descending | ForEach-Object{
 	
 		if($sumAddons[$identifier[$i]] -eq $null)
 		{
-			$sumAddons.add($identifier[$i],$quantity[$i])
+			#bug caused if there is only a single entry
+			if($identifier.count -eq 1)
+			{
+				$sumAddons.add($identifier,$quantity[$i])
+			}
+			else
+			{
+				$sumAddons.add($identifier[$i],$quantity[$i])
+			}
+			
 		}
 		else 
 		{
 			$prev = $sumAddons[$identifier[$i]]
 			
-			$sumAddons[$identifier[$i]] = $prev + $quantity[$i]
+			#bug caused if there is only a single entry
+			if($identifier.count -eq 1)
+			{
+				$sumAddons[$identifier] = $prev + $quantity[$i]
+			}
+			else{
+				$sumAddons[$identifier[$i]] = $prev + $quantity[$i]
+			}
 		}
 		
     }
 	
 	$output.Add($_.name, $sumAddons)
-	
-	
 }
 
 
