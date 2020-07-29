@@ -1,5 +1,5 @@
-	Import-Module .\CWManage.psm1
-	Import-Module .\password.ps1
+Import-Module .\CWManage.psm1
+Import-Module .\password.ps1
 	
 	function Start-CWMConnection
 	{
@@ -28,53 +28,114 @@
 		Connect-CWM @Connection
 		Write-Output "Authenticated successfully with Manage"
 	} 
-	Start-CWMConnection
 
-#dateentered
-$time = Get-CWMTimeEntry -Condition 'timeStart > [2020-4-1T01:00:00Z] and timeStart < [2020-5-1T01:00:00Z]' -all
-$hours = 0
-$companyHours = @()
+Start-CWMConnection
 
-foreach($entry in $time){
-	$hours = $hours + $entry.actualhours
+#get relevant agreements
+$agree = Get-CWMAgreement -Condition 'type/name != "Break Fix" and type/name != "TBS Install" and type/name != "3cx AMC + Base" and type/name != "zz-TBS installs" and company/identifier != "XYZTestCompany" and noEndingDateFlag = TRUE and name != "Monthly - Veeam O365" and name != "Monthly - Rack Space Rental" and name != "Custom Quote" and company/identifier != "CloudConnectPtyLtd"' -all 
+
+#company dictionary
+$d = @{}
+
+foreach($entry in $agree){
 	
-	$companyname = $entry.company.name
-	$ticketID = $entry.chargetoid
-	$hour = $entry.actualhours
-	$name = $entry.member.identifier
-	$chargetotype = $entry.chargetotype
-	$worktype = $entry.worktype.name
-	$workrole = $entry.workrole.name
-	$agreement = $entry.agreement.name
-	$billableoption = $entry.billableoption
-	$notes = $entry.notes
-	$hoursbilled = $entry.hoursbilled
-	$hourlyrate = $entry.hourlyrate
+	#loop through agreements and add it to the corresponding company in the dictionary
+	if($d[$entry.company.identifier] -eq $null)
+	{	
+		$addition = Get-CWMAgreementAddition $entry.id -all -Condition 'product/identifier = "CC-SSD" or product/identifier = "CC-RAM" or product/identifier = "CC-CPU"' 
 	
-	if($notes)
-	{
-		$notes = $notes.replace("`n",", ").replace("`r",", ")
+		if($addition.count -ne 0)
+		{
+			$d.Add($entry.company.identifier, $addition)
+		}
 	}
+	else {
 	
-	$item = "" | Select ticketID,chargetotype,worktype,workrole,agreement,billableoption,name,company,hours,hoursbilled,hourlyrate,notes
-	$item.ticketID = $ticketID.ToString() 
-	$item.chargetotype = $chargetotype 
-	$item.worktype = $worktype 
-	$item.workrole = $workrole 
-	$item.agreement = $agreement 
-	$item.billableoption = $billableoption 
-	$item.name = $name 
-	$item.company = $companyname 
-	$item.hours = $hour.ToString() 
-	$item.hoursbilled = $hoursbilled.ToString() 
-	$item.hourlyrate = $hourlyrate.ToString() 
-	$item.notes = $notes
+		$addition = Get-CWMAgreementAddition $entry.id -all -Condition 'product/identifier = "CC-SSD" or product/identifier = "CC-RAM" or product/identifier = "CC-CPU"' 
+		
+		if($addition.count -ne 0)
+		{
+		
+			$prevAddition = $d[$entry.company.identifier]
+			
+			$allAddition = $addition + $prevAddition
+			
+			
+			$d[$entry.company.identifier] = $allAddition
+		}
+	}
+}
+	
+#output object
+$output = @{}
+
+#loop through dictionary to sum up each CC-SSD, CC-RAM, CC-CPU if there are multiple agreement add-ons
+$d.GetEnumerator() | sort value -Descending | ForEach-Object{
+
+	$companyName = $_.name
+	$identifier = $_.value.product.identifier
+	$quantity = $_.value.quantity
 	
 	
-	$companyHours += $item
+	#write-output $companyName 
+	#write-output $identifier 
+	#write-output $quantity 
+	
+	$sumAddons = @{}
+	
+	for ($i=0; $i -le $identifier.count-1; $i++) {
+	
+		if($sumAddons[$identifier[$i]] -eq $null)
+		{
+			#bug caused if there is only a single entry
+			if($identifier.count -eq 1)
+			{
+				$sumAddons.add($identifier,$quantity[$i])
+			}
+			else
+			{
+				$sumAddons.add($identifier[$i],$quantity[$i])
+			}
+			
+		}
+		else 
+		{
+			$prev = $sumAddons[$identifier[$i]]
+			
+			#bug caused if there is only a single entry
+			if($identifier.count -eq 1)
+			{
+				$sumAddons[$identifier] = $prev + $quantity[$i]
+			}
+			else{
+				$sumAddons[$identifier[$i]] = $prev + $quantity[$i]
+			}
+		}
+		
+    }
+	
+	$output.Add($_.name, $sumAddons)
+}
+
+
+$output.GetEnumerator() | sort value -Descending | ForEach-Object{
+	
+	#add-content -Value $_.name -path .\agree.csv
+	
+	#add-content -value $output[$_.name] -path .\agree.csv
+	
+	write-output $_.name
+	write-output $output[$_.name]
+	
+	#add-content -Value $_.name -path .\agree.csv
+	
 	
 }
 
-$companyhours | Export-Csv -Path .\hours.csv
+
+
+#add-content -Value $v -path .\aaa.csv
+
+
 
 
