@@ -43,19 +43,27 @@ foreach($entry in $agree){
 	
 	if($d[$entry.company.identifier] -eq $null)
 	{	
-		$addition = Get-CWMAgreementAddition $entry.id -all #-Condition 'product/identifier = "CC-SSD"' 
+		$addition = Get-CWMAgreementAddition $entry.id -all -Condition 'product/identifier = "CC-SSD" or product/identifier = "CC-RAM" or product/identifier = "CC-CPU"' 
 	
-		$d.Add($entry.company.identifier, $addition)
+		if($addition.count -ne 0)
+		{
+			$d.Add($entry.company.identifier, $addition)
+		}
 	}
 	else {
 	
-		$addition = Get-CWMAgreementAddition $entry.id -all
+		$addition = Get-CWMAgreementAddition $entry.id -all -Condition 'product/identifier = "CC-SSD" or product/identifier = "CC-RAM" or product/identifier = "CC-CPU"' 
 		
-		$prevAddition = $d[$entry.company.identifier]
+		if($addition.count -ne 0)
+		{
 		
-		$allAddition = $addition + $prevAddition
-		
-		$d[$entry.company.identifier] = $allAddition
+			$prevAddition = $d[$entry.company.identifier]
+			
+			$allAddition = $addition + $prevAddition
+			
+			
+			$d[$entry.company.identifier] = $allAddition
+		}
 	
 	}
 
